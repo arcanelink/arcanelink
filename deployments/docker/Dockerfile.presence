@@ -1,0 +1,14 @@
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
+RUN apk add --no-cache git
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /presence ./cmd/presence
+
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /presence .
+EXPOSE 50054
+CMD ["./presence"]

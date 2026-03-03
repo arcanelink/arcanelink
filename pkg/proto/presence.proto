@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package presence;
+
+option go_package = "github.com/arcane/arcanelink/pkg/proto/presence";
+
+service PresenceService {
+  rpc UpdatePresence(UpdatePresenceRequest) returns (UpdatePresenceResponse);
+  rpc GetPresence(GetPresenceRequest) returns (GetPresenceResponse);
+  rpc GetMultiplePresence(GetMultiplePresenceRequest) returns (GetMultiplePresenceResponse);
+}
+
+message UpdatePresenceRequest {
+  string user_id = 1;
+  string status = 2; // online, offline, away, busy
+  string status_msg = 3;
+}
+
+message UpdatePresenceResponse {
+  bool success = 1;
+}
+
+message GetPresenceRequest {
+  string user_id = 1;
+}
+
+message GetPresenceResponse {
+  string user_id = 1;
+  string presence = 2;
+  int64 last_active = 3;
+  string status_msg = 4;
+}
+
+message GetMultiplePresenceRequest {
+  repeated string user_ids = 1;
+}
+
+message PresenceInfo {
+  string user_id = 1;
+  string presence = 2;
+  int64 last_active = 3;
+}
+
+message GetMultiplePresenceResponse {
+  repeated PresenceInfo presences = 1;
+}

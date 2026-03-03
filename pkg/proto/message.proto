@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package message;
+
+option go_package = "github.com/arcane/arcanelink/pkg/proto/message";
+
+service MessageService {
+  rpc SendDirect(SendDirectRequest) returns (SendDirectResponse);
+  rpc GetDirectHistory(GetDirectHistoryRequest) returns (GetDirectHistoryResponse);
+  rpc Sync(SyncRequest) returns (SyncResponse);
+  rpc ReceiveFederatedDirect(ReceiveFederatedDirectRequest) returns (ReceiveFederatedDirectResponse);
+}
+
+message MessageContent {
+  string msgtype = 1;
+  string body = 2;
+  string url = 3;
+  string info_json = 4; // JSON string for info map
+  string geo_uri = 5;
+}
+
+message DirectMessage {
+  string msg_id = 1;
+  string sender = 2;
+  string recipient = 3;
+  MessageContent content = 4;
+  int64 timestamp = 5;
+}
+
+message SendDirectRequest {
+  string sender = 1;
+  string recipient = 2;
+  MessageContent content = 3;
+}
+
+message SendDirectResponse {
+  string msg_id = 1;
+  int64 timestamp = 2;
+}
+
+message GetDirectHistoryRequest {
+  string user_id = 1;
+  string peer = 2;
+  int32 limit = 3;
+  string before = 4;
+}
+
+message GetDirectHistoryResponse {
+  repeated DirectMessage messages = 1;
+  string prev_token = 2;
+  bool has_more = 3;
+}
+
+message SyncRequest {
+  string user_id = 1;
+  string since = 2;
+  int32 timeout = 3; // milliseconds
+}
+
+message SyncResponse {
+  string next_token = 1;
+  repeated DirectMessage direct_messages = 2;
+  repeated RoomEvent room_events = 3;
+}
+
+message RoomEvent {
+  string event_id = 1;
+  string room_id = 2;
+  string sender = 3;
+  string event_type = 4;
+  string content_json = 5; // JSON string for content map
+  int64 timestamp = 6;
+}
+
+message ReceiveFederatedDirectRequest {
+  string sender = 1;
+  string recipient = 2;
+  string msg_id = 3;
+  MessageContent content = 4;
+  int64 timestamp = 5;
+}
+
+message ReceiveFederatedDirectResponse {
+  bool success = 1;
+  int64 received_at = 2;
+}

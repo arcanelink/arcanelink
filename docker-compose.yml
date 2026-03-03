@@ -1,0 +1,184 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: mbot-postgres
+    environment:
+      POSTGRES_DB: mbot
+      POSTGRES_USER: mbot
+      POSTGRES_PASSWORD: mbot_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mbot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mbot-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: mbot-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mbot-network
+
+  auth:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.auth
+    container_name: mbot-auth
+    ports:
+      - "50051:50051"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mbot
+      - DB_USER=mbot
+      - DB_PASSWORD=mbot_password
+      - JWT_SECRET=your-secret-key-change-in-production
+      - GRPC_PORT=50051
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mbot-network
+    restart: unless-stopped
+
+  message:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.message
+    container_name: mbot-message
+    ports:
+      - "50052:50052"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mbot
+      - DB_USER=mbot
+      - DB_PASSWORD=mbot_password
+      - REDIS_ADDR=redis:6379
+      - FEDERATION_SERVICE_ADDR=federation:50055
+      - GRPC_PORT=50052
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mbot-network
+    restart: unless-stopped
+
+  room:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.room
+    container_name: mbot-room
+    ports:
+      - "50053:50053"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mbot
+      - DB_USER=mbot
+      - DB_PASSWORD=mbot_password
+      - FEDERATION_SERVICE_ADDR=federation:50055
+      - GRPC_PORT=50053
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mbot-network
+    restart: unless-stopped
+
+  presence:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.presence
+    container_name: mbot-presence
+    ports:
+      - "50054:50054"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mbot
+      - DB_USER=mbot
+      - DB_PASSWORD=mbot_password
+      - REDIS_ADDR=redis:6379
+      - GRPC_PORT=50054
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mbot-network
+    restart: unless-stopped
+
+  federation:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.federation
+    container_name: mbot-federation
+    ports:
+      - "8448:8448"
+      - "50055:50055"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mbot
+      - DB_USER=mbot
+      - DB_PASSWORD=mbot_password
+      - SERVER_NAME=localhost
+      - HTTP_PORT=8448
+      - GRPC_PORT=50055
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mbot-network
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.api-gateway
+    container_name: mbot-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTH_SERVICE_ADDR=auth:50051
+      - MESSAGE_SERVICE_ADDR=message:50052
+      - ROOM_SERVICE_ADDR=room:50053
+      - PRESENCE_SERVICE_ADDR=presence:50054
+      - HTTP_PORT=8080
+    depends_on:
+      - auth
+      - message
+      - room
+      - presence
+    networks:
+      - mbot-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  mbot-network:
+    driver: bridge

@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package federation;
+
+option go_package = "github.com/arcane/arcanelink/pkg/proto/federation";
+
+service FederationService {
+  rpc ForwardDirectMessage(ForwardDirectMessageRequest) returns (ForwardDirectMessageResponse);
+  rpc ForwardRoomEvent(ForwardRoomEventRequest) returns (ForwardRoomEventResponse);
+  rpc QueryUser(QueryUserRequest) returns (QueryUserResponse);
+}
+
+message ForwardDirectMessageRequest {
+  string sender = 1;
+  string recipient = 2;
+  string msg_id = 3;
+  string msgtype = 4;
+  string body = 5;
+  string url = 6;
+  string info_json = 7;
+  int64 timestamp = 8;
+}
+
+message ForwardDirectMessageResponse {
+  bool success = 1;
+}
+
+message ForwardRoomEventRequest {
+  string room_id = 1;
+  string event_id = 2;
+  string sender = 3;
+  string event_type = 4;
+  string content_json = 5;
+  int64 timestamp = 6;
+  repeated string member_ids = 7;
+}
+
+message ForwardRoomEventResponse {
+  bool success = 1;
+  int32 delivered_count = 2;
+}
+
+message QueryUserRequest {
+  string user_id = 1;
+}
+
+message QueryUserResponse {
+  string user_id = 1;
+  bool exists = 2;
+  string presence = 3;
+  int64 last_active = 4;
+}

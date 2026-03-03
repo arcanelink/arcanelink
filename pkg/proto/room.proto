@@ -1,0 +1,136 @@
+syntax = "proto3";
+
+package room;
+
+option go_package = "github.com/arcane/arcanelink/pkg/proto/room";
+
+service RoomService {
+  rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse);
+  rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse);
+  rpc LeaveRoom(LeaveRoomRequest) returns (LeaveRoomResponse);
+  rpc InviteUser(InviteUserRequest) returns (InviteUserResponse);
+  rpc SendRoomMessage(SendRoomMessageRequest) returns (SendRoomMessageResponse);
+  rpc GetRoomMembers(GetRoomMembersRequest) returns (GetRoomMembersResponse);
+  rpc GetRooms(GetRoomsRequest) returns (GetRoomsResponse);
+  rpc GetRoomHistory(GetRoomHistoryRequest) returns (GetRoomHistoryResponse);
+  rpc GetRoomState(GetRoomStateRequest) returns (GetRoomStateResponse);
+}
+
+message CreateRoomRequest {
+  string creator = 1;
+  string name = 2;
+  string topic = 3;
+  repeated string invite = 4;
+}
+
+message CreateRoomResponse {
+  string room_id = 1;
+  int64 created_at = 2;
+}
+
+message JoinRoomRequest {
+  string room_id = 1;
+  string user_id = 2;
+}
+
+message JoinRoomResponse {
+  bool success = 1;
+  int64 joined_at = 2;
+}
+
+message LeaveRoomRequest {
+  string room_id = 1;
+  string user_id = 2;
+}
+
+message LeaveRoomResponse {
+  bool success = 1;
+}
+
+message InviteUserRequest {
+  string room_id = 1;
+  string inviter = 2;
+  string invitee = 3;
+}
+
+message InviteUserResponse {
+  bool success = 1;
+}
+
+message SendRoomMessageRequest {
+  string room_id = 1;
+  string sender = 2;
+  string msgtype = 3;
+  string body = 4;
+  string url = 5;
+  string info_json = 6;
+}
+
+message SendRoomMessageResponse {
+  string event_id = 1;
+  int64 timestamp = 2;
+}
+
+message GetRoomMembersRequest {
+  string room_id = 1;
+}
+
+message RoomMember {
+  string user_id = 1;
+  int64 joined_at = 2;
+}
+
+message GetRoomMembersResponse {
+  repeated RoomMember members = 1;
+}
+
+message GetRoomsRequest {
+  string user_id = 1;
+}
+
+message RoomInfo {
+  string room_id = 1;
+  string name = 2;
+  string topic = 3;
+  int32 member_count = 4;
+  int64 last_activity = 5;
+}
+
+message GetRoomsResponse {
+  repeated RoomInfo rooms = 1;
+}
+
+message GetRoomHistoryRequest {
+  string room_id = 1;
+  string user_id = 2;
+  int32 limit = 3;
+  string before = 4;
+}
+
+message RoomEvent {
+  string event_id = 1;
+  string room_id = 2;
+  string sender = 3;
+  string event_type = 4;
+  string content_json = 5;
+  int64 timestamp = 6;
+}
+
+message GetRoomHistoryResponse {
+  repeated RoomEvent events = 1;
+  string prev_token = 2;
+  bool has_more = 3;
+}
+
+message GetRoomStateRequest {
+  string room_id = 1;
+}
+
+message GetRoomStateResponse {
+  string room_id = 1;
+  string name = 2;
+  string topic = 3;
+  string creator = 4;
+  int64 created_at = 5;
+  int32 member_count = 6;
+}
