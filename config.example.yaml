@@ -1,0 +1,31 @@
+# ArcaneLink Configuration Example
+# Copy this file to config.yaml and modify as needed
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  grpc_port: 50051
+
+database:
+  host: "localhost"
+  port: 5432
+  name: "mbot"
+  user: "mbot"
+  password: "mbot_password"
+  ssl_mode: "disable"  # Use "require" in production
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+
+services:
+  auth: "localhost:50051"
+  message: "localhost:50052"
+  room: "localhost:50053"
+  presence: "localhost:50054"
+  federation: "localhost:50055"
+
+jwt:
+  secret: "your-secret-key-change-in-production"
+  expires_in: 86400  # 24 hours in seconds

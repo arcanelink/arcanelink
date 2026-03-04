@@ -3,3 +3,20 @@ coverage.out
 IMPLEMENTATION.md
 PROGRESS.md
 COMPILATION_STATUS.md
+
+# Environment files
+.env
+.env.local
+config.yaml
+config.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
