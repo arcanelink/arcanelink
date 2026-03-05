@@ -9,6 +9,9 @@ export function ChatWindow() {
   const [messageText, setMessageText] = useState('')
   const [sending, setSending] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showMembers, setShowMembers] = useState(false)
+  const [members, setMembers] = useState<Array<{ user_id: string; joined_at: number }>>([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const currentChat = useChatStore((state) => state.currentChat)
@@ -96,6 +99,22 @@ export function ChatWindow() {
     }
   }
 
+  const loadRoomMembers = async () => {
+    if (!currentChat || currentChat.type !== 'room') return
+
+    setLoadingMembers(true)
+    try {
+      const response = await apiClient.getRoomMembers(currentChat.id)
+      setMembers(response.members || [])
+      setShowMembers(true)
+    } catch (error) {
+      console.error('Failed to load room members:', error)
+      alert('Failed to load room members')
+    } finally {
+      setLoadingMembers(false)
+    }
+  }
+
   const currentRoom = currentChat?.type === 'room'
     ? rooms.find(r => r.room_id === currentChat.id)
     : null
@@ -116,15 +135,49 @@ export function ChatWindow() {
       <div className="chat-header">
         <h2>{currentChat.type === 'direct' ? currentChat.id : `# ${currentRoom?.name || currentChat.id}`}</h2>
         {currentChat.type === 'room' && (
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="btn-delete"
-            title="Delete room"
-          >
-            🗑️
-          </button>
+          <div className="room-actions">
+            <button
+              onClick={loadRoomMembers}
+              className="btn-members"
+              title="View members"
+              disabled={loadingMembers}
+            >
+              👥 {loadingMembers ? 'Loading...' : 'Members'}
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="btn-delete"
+              title="Delete room"
+            >
+              🗑️
+            </button>
+          </div>
         )}
       </div>
+
+      {showMembers && (
+        <div className="members-overlay" onClick={() => setShowMembers(false)}>
+          <div className="members-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="members-header">
+              <h3>Room Members ({members.length})</h3>
+              <button onClick={() => setShowMembers(false)} className="btn-close">×</button>
+            </div>
+            <div className="members-list">
+              {members.map((member) => (
+                <div key={member.user_id} className="member-item">
+                  <div className="member-avatar">{member.user_id.charAt(1).toUpperCase()}</div>
+                  <div className="member-info">
+                    <div className="member-name">{member.user_id}</div>
+                    <div className="member-joined">
+                      Joined {new Date(member.joined_at * 1000).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDeleteConfirm && (
         <div className="delete-confirm-overlay">

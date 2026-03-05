@@ -459,6 +459,33 @@ func (h *APIHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{"rooms": rooms})
 }
 
+func (h *APIHandler) GetRoomMembers(w http.ResponseWriter, r *http.Request) {
+	roomID := r.URL.Query().Get("room_id")
+	if roomID == "" {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Missing room_id parameter")
+		return
+	}
+
+	resp, err := h.roomClient.GetRoomMembers(context.Background(), &roompb.GetRoomMembersRequest{
+		RoomId: roomID,
+	})
+	if err != nil {
+		logger.Error("Failed to get room members", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to get room members")
+		return
+	}
+
+	members := make([]map[string]interface{}, len(resp.Members))
+	for i, member := range resp.Members {
+		members[i] = map[string]interface{}{
+			"user_id":   member.UserId,
+			"joined_at": member.JoinedAt,
+		}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{"members": members})
+}
+
 func (h *APIHandler) DeleteRoom(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 
