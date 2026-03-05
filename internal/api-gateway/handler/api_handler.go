@@ -209,6 +209,7 @@ func (h *APIHandler) Sync(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout+5000)*time.Millisecond)
 	defer cancel()
 
+	// Get direct messages from message service
 	resp, err := h.messageClient.Sync(ctx, &messagepb.SyncRequest{
 		UserId:  userID,
 		Since:   since,
@@ -218,6 +219,44 @@ func (h *APIHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		logger.Error("Sync failed", zap.Error(err))
 		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Sync failed")
 		return
+	}
+
+	// Get user's rooms to fetch room events
+	roomsResp, err := h.roomClient.GetRooms(context.Background(), &roompb.GetRoomsRequest{
+		UserId: userID,
+	})
+	if err != nil {
+		logger.Error("Failed to get user rooms for sync", zap.Error(err))
+		// Continue without room events if this fails
+		roomsResp = &roompb.GetRoomsResponse{Rooms: []*roompb.RoomInfo{}}
+	}
+
+	// Parse since timestamp
+	var sinceTimestamp int64
+	if since != "" && len(since) > 2 {
+		fmt.Sscanf(since[2:], "%d", &sinceTimestamp)
+	}
+
+	// Collect room events from all user's rooms
+	var allRoomEvents []*roompb.RoomEvent
+	for _, room := range roomsResp.Rooms {
+		historyResp, err := h.roomClient.GetRoomHistory(context.Background(), &roompb.GetRoomHistoryRequest{
+			RoomId: room.RoomId,
+			UserId: userID,
+			Limit:  50,
+			Before: fmt.Sprintf("t_%d", time.Now().UnixMilli()),
+		})
+		if err != nil {
+			logger.Error("Failed to get room history", zap.String("room_id", room.RoomId), zap.Error(err))
+			continue
+		}
+
+		// Filter events newer than since timestamp
+		for _, event := range historyResp.Events {
+			if event.Timestamp > sinceTimestamp {
+				allRoomEvents = append(allRoomEvents, event)
+			}
+		}
 	}
 
 	// Convert proto messages to models
@@ -243,8 +282,8 @@ func (h *APIHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	roomEvents := make([]*models.RoomEvent, len(resp.RoomEvents))
-	for i, event := range resp.RoomEvents {
+	roomEvents := make([]*models.RoomEvent, len(allRoomEvents))
+	for i, event := range allRoomEvents {
 		var content map[string]interface{}
 		if event.ContentJson != "" {
 			json.Unmarshal([]byte(event.ContentJson), &content)
