@@ -28,6 +28,7 @@ func SetupRouter(apiHandler *handler.APIHandler, authMiddleware *middleware.Auth
 
 	// Message routes
 	api.HandleFunc("/send_direct", apiHandler.SendDirect).Methods("POST")
+	api.HandleFunc("/send_room", apiHandler.SendRoomMessage).Methods("POST")
 	api.HandleFunc("/sync", apiHandler.Sync).Methods("GET")
 	api.HandleFunc("/direct_history", apiHandler.GetDirectHistory).Methods("GET")
 

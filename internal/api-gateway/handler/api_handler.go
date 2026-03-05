@@ -325,6 +325,37 @@ func (h *APIHandler) GetDirectHistory(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *APIHandler) SendRoomMessage(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
+	var req models.SendRoomMessageRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+		return
+	}
+
+	infoJSON, _ := json.Marshal(req.Content.Info)
+
+	resp, err := h.roomClient.SendRoomMessage(context.Background(), &roompb.SendRoomMessageRequest{
+		RoomId: req.RoomID,
+		Sender: userID,
+		Msgtype: string(req.Content.MsgType),
+		Body:    req.Content.Body,
+		Url:     req.Content.URL,
+		InfoJson: string(infoJSON),
+	})
+	if err != nil {
+		logger.Error("Failed to send room message", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to send message")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"event_id": resp.EventId,
+		"timestamp": resp.Timestamp,
+	})
+}
+
 // Room handlers
 
 func (h *APIHandler) CreateRoom(w http.ResponseWriter, r *http.Request) {
