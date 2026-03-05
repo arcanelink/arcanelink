@@ -97,10 +97,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   loadInitialData: async () => {
     try {
-      // Load rooms
       const { apiClient } = await import('../api/client')
-      const roomsData = await apiClient.getRooms()
 
+      // Load rooms
+      const roomsData = await apiClient.getRooms()
       if (roomsData.rooms && roomsData.rooms.length > 0) {
         const rooms: Room[] = roomsData.rooms.map(r => ({
           room_id: r.room_id,
@@ -110,6 +110,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
           created_at: '',
         }))
         set({ rooms })
+      }
+
+      // Load recent messages to discover conversations
+      const syncData = await apiClient.sync(undefined, 0)
+
+      if (syncData.direct_messages && syncData.direct_messages.length > 0) {
+        // Add initial messages
+        const state = get()
+        syncData.direct_messages.forEach(msg => state.addMessage(msg))
+
+        // Get current user ID from auth store
+        const { useAuthStore } = await import('./authStore')
+        const currentUserId = useAuthStore.getState().user?.user_id
+
+        if (currentUserId) {
+          // Extract unique conversation peers
+          const peers = new Set<string>()
+          syncData.direct_messages.forEach(msg => {
+            const peer = msg.sender === currentUserId ? msg.recipient : msg.sender
+            if (peer) peers.add(peer)
+          })
+
+          // Load history for each peer
+          for (const peer of peers) {
+            try {
+              const history = await apiClient.getDirectHistory(peer, 50)
+              if (history.messages) {
+                history.messages.forEach(msg => state.addMessage(msg))
+              }
+            } catch (error) {
+              console.error(`Failed to load history for ${peer}:`, error)
+            }
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to load initial data:', error)

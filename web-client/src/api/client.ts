@@ -7,6 +7,7 @@ import type {
   SyncResponse,
   CreateRoomRequest,
   CreateRoomResponse,
+  Message,
 } from '../types'
 
 const API_BASE = '/_api/v1'
@@ -98,6 +99,17 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     })
+  }
+
+  async getDirectHistory(peer: string, limit: number = 50): Promise<{
+    messages: Message[]
+    prev_token: string
+    has_more: boolean
+  }> {
+    const params = new URLSearchParams()
+    params.append('peer', peer)
+    params.append('limit', limit.toString())
+    return this.request(`/direct_history?${params}`)
   }
 
   // Room APIs

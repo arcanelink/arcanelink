@@ -5,10 +5,13 @@ export class SyncManager {
   private isRunning = false
   private nextToken: string | null = null
   private onSyncCallback: ((data: SyncResponse) => void) | null = null
+  private isFirstSync = true
 
   start(onSync: (data: SyncResponse) => void) {
     this.onSyncCallback = onSync
     this.isRunning = true
+    this.isFirstSync = true
+    this.nextToken = null
     this.poll()
   }
 
@@ -19,8 +22,11 @@ export class SyncManager {
   private async poll() {
     while (this.isRunning) {
       try {
-        const data = await apiClient.sync(this.nextToken || undefined, 30000)
+        // On first sync, don't pass a token to get recent history
+        const token = this.isFirstSync ? undefined : (this.nextToken || undefined)
+        const data = await apiClient.sync(token, 30000)
         this.nextToken = data.next_token
+        this.isFirstSync = false
 
         if (this.onSyncCallback) {
           this.onSyncCallback(data)
