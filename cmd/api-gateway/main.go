@@ -37,6 +37,7 @@ func main() {
 	apiHandler, err := handler.NewAPIHandler(
 		cfg.Services.Auth,
 		cfg.Services.Message,
+		cfg.Services.Room,
 		cfg.Server.Domain,
 	)
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 	"github.com/arcane/arcanelink/pkg/models"
 	authpb "github.com/arcane/arcanelink/pkg/proto/auth"
 	messagepb "github.com/arcane/arcanelink/pkg/proto/message"
+	roompb "github.com/arcane/arcanelink/pkg/proto/room"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -19,10 +20,11 @@ import (
 type APIHandler struct {
 	authClient    authpb.AuthServiceClient
 	messageClient messagepb.MessageServiceClient
+	roomClient    roompb.RoomServiceClient
 	serverDomain  string
 }
 
-func NewAPIHandler(authAddr, messageAddr, serverDomain string) (*APIHandler, error) {
+func NewAPIHandler(authAddr, messageAddr, roomAddr, serverDomain string) (*APIHandler, error) {
 	authConn, err := grpc.Dial(authAddr, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
@@ -33,9 +35,15 @@ func NewAPIHandler(authAddr, messageAddr, serverDomain string) (*APIHandler, err
 		return nil, err
 	}
 
+	roomConn, err := grpc.Dial(roomAddr, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
 	return &APIHandler{
 		authClient:    authpb.NewAuthServiceClient(authConn),
 		messageClient: messagepb.NewMessageServiceClient(messageConn),
+		roomClient:    roompb.NewRoomServiceClient(roomConn),
 		serverDomain:  serverDomain,
 	}, nil
 }
@@ -294,6 +302,109 @@ func (h *APIHandler) GetDirectHistory(w http.ResponseWriter, r *http.Request) {
 		PrevToken: resp.PrevToken,
 		HasMore:   resp.HasMore,
 	})
+}
+
+// Room handlers
+
+func (h *APIHandler) CreateRoom(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
+	var req struct {
+		Name   string   `json:"name"`
+		Invite []string `json:"invite,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+		return
+	}
+
+	resp, err := h.roomClient.CreateRoom(context.Background(), &roompb.CreateRoomRequest{
+		Creator: userID,
+		Name:    req.Name,
+		Invite:  req.Invite,
+	})
+	if err != nil {
+		logger.Error("Failed to create room", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to create room")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{
+		"room_id": resp.RoomId,
+	})
+}
+
+func (h *APIHandler) JoinRoom(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
+	var req struct {
+		RoomID string `json:"room_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+		return
+	}
+
+	_, err := h.roomClient.JoinRoom(context.Background(), &roompb.JoinRoomRequest{
+		RoomId: req.RoomID,
+		UserId: userID,
+	})
+	if err != nil {
+		logger.Error("Failed to join room", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to join room")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func (h *APIHandler) LeaveRoom(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
+	var req struct {
+		RoomID string `json:"room_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+		return
+	}
+
+	_, err := h.roomClient.LeaveRoom(context.Background(), &roompb.LeaveRoomRequest{
+		RoomId: req.RoomID,
+		UserId: userID,
+	})
+	if err != nil {
+		logger.Error("Failed to leave room", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to leave room")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func (h *APIHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
+	resp, err := h.roomClient.GetRooms(context.Background(), &roompb.GetRoomsRequest{
+		UserId: userID,
+	})
+	if err != nil {
+		logger.Error("Failed to get rooms", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to get rooms")
+		return
+	}
+
+	rooms := make([]map[string]interface{}, len(resp.Rooms))
+	for i, room := range resp.Rooms {
+		rooms[i] = map[string]interface{}{
+			"room_id":      room.RoomId,
+			"name":         room.Name,
+			"topic":        room.Topic,
+			"member_count": room.MemberCount,
+		}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{"rooms": rooms})
 }
 
 // Helper functions

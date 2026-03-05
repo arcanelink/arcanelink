@@ -31,6 +31,12 @@ func SetupRouter(apiHandler *handler.APIHandler, authMiddleware *middleware.Auth
 	api.HandleFunc("/sync", apiHandler.Sync).Methods("GET")
 	api.HandleFunc("/direct_history", apiHandler.GetDirectHistory).Methods("GET")
 
+	// Room routes
+	api.HandleFunc("/rooms/create", apiHandler.CreateRoom).Methods("POST")
+	api.HandleFunc("/rooms/join", apiHandler.JoinRoom).Methods("POST")
+	api.HandleFunc("/rooms/leave", apiHandler.LeaveRoom).Methods("POST")
+	api.HandleFunc("/rooms", apiHandler.GetRooms).Methods("GET")
+
 	// Health check
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
