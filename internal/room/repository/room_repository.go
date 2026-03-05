@@ -129,7 +129,7 @@ func (r *RoomRepository) GetMembers(roomID string) ([]*models.RoomMember, error)
 func (r *RoomRepository) GetUserRooms(userID string) ([]*models.RoomInfo, error) {
 	query := `
 		SELECT r.room_id, r.name, r.topic,
-		       COUNT(rm.user_id) as member_count,
+		       COUNT(DISTINCT rm.user_id) as member_count,
 		       COALESCE(MAX(re.timestamp), EXTRACT(EPOCH FROM r.created_at) * 1000) as last_activity
 		FROM rooms r
 		INNER JOIN room_members rm ON r.room_id = rm.room_id
