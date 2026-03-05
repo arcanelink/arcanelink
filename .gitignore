@@ -20,3 +20,7 @@ config.yml
 # OS
 .DS_Store
 Thumbs.db
+
+# Web client
+web-client/node_modules
+web-client/dist
