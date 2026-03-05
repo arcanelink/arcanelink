@@ -304,6 +304,18 @@ Authorization: Bearer <access_token>
 }
 ```
 
+#### Invite User to Room
+
+```http
+POST /_api/v1/rooms/invite
+Authorization: Bearer <access_token>
+
+{
+  "room_id": "!abc123:example.com",
+  "user_id": "@bob:example.com"
+}
+```
+
 #### Leave Room
 
 ```http
@@ -315,6 +327,8 @@ Authorization: Bearer <access_token>
 }
 ```
 
+Note: Room creators cannot leave rooms, they must delete the room instead.
+
 #### Delete Room (Creator Only)
 
 ```http
@@ -325,6 +339,26 @@ Authorization: Bearer <access_token>
   "room_id": "!abc123:example.com"
 }
 ```
+
+Note: Deleting a room automatically removes all members.
+
+#### Get Room State
+
+```http
+GET /_api/v1/rooms/state?room_id=!abc123:example.com
+Authorization: Bearer <access_token>
+```
+
+Returns room information including the creator ID.
+
+#### Get Link Preview
+
+```http
+GET /_api/v1/link_preview?url=https://example.com
+Authorization: Bearer <access_token>
+```
+
+Returns webpage metadata (title, description, image) for displaying rich link previews.
 
 ## Implementation Recommendations
 
@@ -348,21 +382,28 @@ All features have been implemented:
 5. ✅ Room messaging with real-time sync
 6. ✅ Member invitation and management
 7. ✅ Room member list display
-8. ✅ Room deletion (creator only)
-9. ✅ Message history loading on login
-10. ✅ Presence management (basic)
-11. ✅ Federation service (basic structure)
+8. ✅ Room deletion with permission control (creator only)
+9. ✅ Room leave functionality (members only)
+10. ✅ Message history loading on login
+11. ✅ Emoji picker support (240+ emojis)
+12. ✅ Link preview with Open Graph metadata
+13. ✅ Session persistence (no logout on page refresh)
+14. ✅ Presence management (basic)
+15. ✅ Federation service (basic structure)
 
 ### Web Client Features
 
 The included web client provides:
 
-- User registration and login
+- User registration and login with session persistence
 - Direct messaging with conversation history
 - Room creation with member invitations
 - Room messaging with real-time updates
 - Room member list viewing
-- Room deletion (for creators)
+- Room management (invite users, leave room, delete room)
+- Permission-based UI (creators can only delete, members can only leave)
+- Emoji picker for messages (240+ emojis across 8 categories)
+- Clickable links with rich preview cards (Open Graph metadata)
 - Automatic message history loading
 - Optimistic UI updates
 - Responsive design
@@ -430,10 +471,14 @@ The included web client provides:
   - [x] Direct messaging with history
   - [x] Room creation and management
   - [x] Room messaging with real-time sync
-  - [x] Room member management
+  - [x] Room member management (invite, leave, delete)
+  - [x] Permission-based room operations (creator vs member)
   - [x] Room deletion (creator only)
   - [x] Long polling sync for real-time updates
   - [x] Message history on login
+  - [x] Emoji picker support
+  - [x] Link preview with Open Graph metadata
+  - [x] Session persistence across page refreshes
 - [ ] Testing tools
 - [ ] Performance benchmarks
 - [ ] Production deployment guide
@@ -442,29 +487,50 @@ The included web client provides:
 
 ### 2026-03-05
 
-**Room Features:**
+**Room Management:**
 - ✅ Room message sending and receiving
 - ✅ Real-time message sync for all room members
 - ✅ Room member list display with avatars
 - ✅ Room deletion functionality (creator only)
+- ✅ Room leave functionality (members only, creator cannot leave)
+- ✅ User invitation to rooms with validation
+- ✅ Permission-based UI (different actions for creator vs members)
 - ✅ Correct member count display
+- ✅ Auto-cleanup of all members when room is deleted
 
 **Message Features:**
 - ✅ Direct message history loading on login
 - ✅ Room message history loading on login
 - ✅ Optimistic UI updates for sent messages
 - ✅ Room events processing in sync
+- ✅ Emoji picker with 240+ emojis across 8 categories
+- ✅ Clickable links in messages
+- ✅ Rich link preview cards with Open Graph metadata
+- ✅ Correct message ordering (chronological by timestamp)
+
+**Authentication & Session:**
+- ✅ Session persistence across page refreshes
+- ✅ User data stored in localStorage
+- ✅ Proper initialization state handling to prevent race conditions
 
 **API Enhancements:**
 - ✅ `/rooms/delete` - Delete room endpoint
+- ✅ `/rooms/invite` - Invite user to room endpoint
+- ✅ `/rooms/leave` - Leave room endpoint
+- ✅ `/rooms/state` - Get room state (including creator info)
 - ✅ `/rooms/members` - Get room members endpoint
 - ✅ `/send_room` - Send room message endpoint
+- ✅ `/link_preview` - Get webpage metadata for link previews
 - ✅ Enhanced sync to include room events
 
 **Bug Fixes:**
 - ✅ Fixed member count calculation (was counting events instead of unique members)
 - ✅ Fixed room message sync for all members
 - ✅ Fixed registration error handling
+- ✅ Fixed page refresh causing logout (race condition in auth initialization)
+- ✅ Fixed room message ordering (messages now display chronologically)
+- ✅ Fixed link preview for URLs without Open Graph tags (fallback to basic info)
+- ✅ Fixed invite user validation (check if user exists before adding to room)
 
 ## Contributing
 
