@@ -10,11 +10,13 @@ interface ChatState {
 
   addMessage: (message: Message) => void
   addRoom: (room: Room) => void
+  setRooms: (rooms: Room[]) => void
   removeRoom: (roomId: string) => void
   updatePresence: (presence: Presence[]) => void
   setCurrentChat: (type: 'direct' | 'room' | null, id: string | null) => void
   startSync: () => void
   stopSync: () => void
+  loadInitialData: () => Promise<void>
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -40,6 +42,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => ({
       rooms: [...state.rooms, room],
     }))
+  },
+
+  setRooms: (rooms) => {
+    set({ rooms })
   },
 
   removeRoom: (roomId) => {
@@ -87,5 +93,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   stopSync: () => {
     syncManager.stop()
+  },
+
+  loadInitialData: async () => {
+    try {
+      // Load rooms
+      const { apiClient } = await import('../api/client')
+      const roomsData = await apiClient.getRooms()
+
+      if (roomsData.rooms && roomsData.rooms.length > 0) {
+        const rooms: Room[] = roomsData.rooms.map(r => ({
+          room_id: r.room_id,
+          name: r.name,
+          creator_id: '',
+          members: [],
+          created_at: '',
+        }))
+        set({ rooms })
+      }
+    } catch (error) {
+      console.error('Failed to load initial data:', error)
+    }
   },
 }))

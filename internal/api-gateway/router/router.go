@@ -31,12 +31,22 @@ func SetupRouter(apiHandler *handler.APIHandler, authMiddleware *middleware.Auth
 	api.HandleFunc("/sync", apiHandler.Sync).Methods("GET")
 	api.HandleFunc("/direct_history", apiHandler.GetDirectHistory).Methods("GET")
 
-	// Room routes
+	// Room routes - order matters for gorilla/mux
 	api.HandleFunc("/rooms/create", apiHandler.CreateRoom).Methods("POST")
 	api.HandleFunc("/rooms/join", apiHandler.JoinRoom).Methods("POST")
 	api.HandleFunc("/rooms/leave", apiHandler.LeaveRoom).Methods("POST")
 	api.HandleFunc("/rooms/delete", apiHandler.DeleteRoom).Methods("POST")
 	api.HandleFunc("/rooms", apiHandler.GetRooms).Methods("GET")
+
+	// Debug: print registered routes
+	r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+		path, _ := route.GetPathTemplate()
+		methods, _ := route.GetMethods()
+		if len(methods) > 0 {
+			println("Route:", path, "Methods:", methods[0])
+		}
+		return nil
+	})
 
 	// Health check
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

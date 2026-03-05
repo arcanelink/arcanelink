@@ -13,7 +13,9 @@ export function ChatPage() {
   const logout = useAuthStore((state) => state.logout)
   const startSync = useChatStore((state) => state.startSync)
   const stopSync = useChatStore((state) => state.stopSync)
+  const loadInitialData = useChatStore((state) => state.loadInitialData)
   const [showCreateRoom, setShowCreateRoom] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -21,9 +23,21 @@ export function ChatPage() {
       return
     }
 
+    // Load initial data (rooms, etc.) before starting sync
+    const initializeChat = async () => {
+      try {
+        await loadInitialData()
+      } catch (error) {
+        console.error('Failed to initialize chat:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    initializeChat()
     startSync()
     return () => stopSync()
-  }, [isAuthenticated, navigate, startSync, stopSync])
+  }, [isAuthenticated, navigate, startSync, stopSync, loadInitialData])
 
   const handleLogout = () => {
     stopSync()
@@ -33,9 +47,17 @@ export function ChatPage() {
 
   return (
     <div className="chat-page">
-      <Sidebar onCreateRoom={() => setShowCreateRoom(true)} onLogout={handleLogout} />
-      <ChatWindow />
-      {showCreateRoom && <CreateRoomModal onClose={() => setShowCreateRoom(false)} />}
+      {isLoading ? (
+        <div className="loading-container">
+          <div className="loading-spinner">Loading...</div>
+        </div>
+      ) : (
+        <>
+          <Sidebar onCreateRoom={() => setShowCreateRoom(true)} onLogout={handleLogout} />
+          <ChatWindow />
+          {showCreateRoom && <CreateRoomModal onClose={() => setShowCreateRoom(false)} />}
+        </>
+      )}
     </div>
   )
 }

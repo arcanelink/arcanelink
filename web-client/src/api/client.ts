@@ -127,6 +127,10 @@ class ApiClient {
     })
   }
 
+  async getRooms(): Promise<{ rooms: Array<{ room_id: string; name: string; topic: string; member_count: number }> }> {
+    return this.request('/rooms')
+  }
+
   // Presence APIs
   async setPresence(status: 'online' | 'offline' | 'away', statusMsg?: string): Promise<void> {
     await this.request('/presence', {
