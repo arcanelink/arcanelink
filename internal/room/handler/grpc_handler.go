@@ -178,3 +178,12 @@ func (h *GRPCHandler) GetRoomState(ctx context.Context, req *pb.GetRoomStateRequ
 		MemberCount: int32(state.MemberCount),
 	}, nil
 }
+
+func (h *GRPCHandler) DeleteRoom(ctx context.Context, req *pb.DeleteRoomRequest) (*pb.DeleteRoomResponse, error) {
+	err := h.roomService.DeleteRoom(req.RoomId, req.UserId)
+	if err != nil {
+		return &pb.DeleteRoomResponse{Success: false}, err
+	}
+
+	return &pb.DeleteRoomResponse{Success: true}, nil
+}

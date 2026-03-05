@@ -342,3 +342,25 @@ func extractDomain(userID string) string {
 	}
 	return "localhost"
 }
+
+// DeleteRoom deletes a room
+func (s *RoomService) DeleteRoom(roomID, userID string) error {
+	// Check if room exists
+	room, err := s.repo.GetRoom(roomID)
+	if err != nil {
+		return fmt.Errorf("room not found: %w", err)
+	}
+
+	// Only the creator can delete the room
+	if room.Creator != userID {
+		return fmt.Errorf("only the room creator can delete the room")
+	}
+
+	// Delete the room
+	if err := s.repo.DeleteRoom(roomID); err != nil {
+		return fmt.Errorf("failed to delete room: %w", err)
+	}
+
+	logger.Info("Room deleted", zap.String("room_id", roomID), zap.String("user_id", userID))
+	return nil
+}

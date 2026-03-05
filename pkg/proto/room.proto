@@ -14,6 +14,7 @@ service RoomService {
   rpc GetRooms(GetRoomsRequest) returns (GetRoomsResponse);
   rpc GetRoomHistory(GetRoomHistoryRequest) returns (GetRoomHistoryResponse);
   rpc GetRoomState(GetRoomStateRequest) returns (GetRoomStateResponse);
+  rpc DeleteRoom(DeleteRoomRequest) returns (DeleteRoomResponse);
 }
 
 message CreateRoomRequest {
@@ -133,4 +134,13 @@ message GetRoomStateResponse {
   string creator = 4;
   int64 created_at = 5;
   int32 member_count = 6;
+}
+
+message DeleteRoomRequest {
+  string room_id = 1;
+  string user_id = 2;
+}
+
+message DeleteRoomResponse {
+  bool success = 1;
 }

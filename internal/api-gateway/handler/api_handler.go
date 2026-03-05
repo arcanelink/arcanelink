@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -80,6 +81,8 @@ func (h *APIHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *APIHandler) Register(w http.ResponseWriter, r *http.Request) {
+	logger.Info("Register function called")
+
 	var req struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -90,8 +93,24 @@ func (h *APIHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Info("Register request decoded", zap.String("username", req.Username), zap.String("domain", req.Domain))
+
+	// Validate input
+	if req.Username == "" || req.Password == "" {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Username and password are required")
+		return
+	}
+
+	// Use server domain if not provided
+	if req.Domain == "" {
+		req.Domain = h.serverDomain
+		logger.Info("Using default server domain", zap.String("domain", req.Domain))
+	}
+
 	// Construct user_id from username and domain
 	userID := "@" + req.Username + ":" + req.Domain
+
+	logger.Info("Attempting to register user", zap.String("user_id", userID))
 
 	resp, err := h.authClient.CreateUser(context.Background(), &authpb.CreateUserRequest{
 		UserId:   userID,
@@ -99,10 +118,12 @@ func (h *APIHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Password: req.Password,
 	})
 	if err != nil {
-		logger.Error("Failed to create user", zap.Error(err))
-		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Registration failed")
+		logger.Error("Failed to create user", zap.Error(err), zap.String("user_id", userID))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", fmt.Sprintf("Registration failed: %v", err))
 		return
 	}
+
+	logger.Info("User created successfully", zap.String("user_id", userID))
 
 	// After creating user, login to get access token
 	loginResp, err := h.authClient.Login(context.Background(), &authpb.LoginRequest{

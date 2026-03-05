@@ -255,3 +255,33 @@ func (r *RoomRepository) RoomExists(roomID string) (bool, error) {
 	}
 	return exists, nil
 }
+
+// DeleteRoom deletes a room and all associated data
+func (r *RoomRepository) DeleteRoom(roomID string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Delete room events
+	if _, err := tx.Exec("DELETE FROM room_events WHERE room_id = $1", roomID); err != nil {
+		return fmt.Errorf("failed to delete room events: %w", err)
+	}
+
+	// Delete room members
+	if _, err := tx.Exec("DELETE FROM room_members WHERE room_id = $1", roomID); err != nil {
+		return fmt.Errorf("failed to delete room members: %w", err)
+	}
+
+	// Delete room
+	if _, err := tx.Exec("DELETE FROM rooms WHERE room_id = $1", roomID); err != nil {
+		return fmt.Errorf("failed to delete room: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}

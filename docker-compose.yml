@@ -41,8 +41,6 @@ services:
       context: .
       dockerfile: deployments/docker/Dockerfile.auth
     container_name: mbot-auth
-    ports:
-      - "50051:50051"
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -63,8 +61,6 @@ services:
       context: .
       dockerfile: deployments/docker/Dockerfile.message
     container_name: mbot-message
-    ports:
-      - "50052:50052"
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -88,8 +84,6 @@ services:
       context: .
       dockerfile: deployments/docker/Dockerfile.room
     container_name: mbot-room
-    ports:
-      - "50053:50053"
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -110,8 +104,6 @@ services:
       context: .
       dockerfile: deployments/docker/Dockerfile.presence
     container_name: mbot-presence
-    ports:
-      - "50054:50054"
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -136,7 +128,6 @@ services:
     container_name: mbot-federation
     ports:
       - "8448:8448"
-      - "50055:50055"
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432

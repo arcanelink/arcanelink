@@ -44,6 +44,10 @@ func main() {
 		logger.Fatal("Failed to initialize API handler", zap.Error(err))
 	}
 
+	logger.Info("API Gateway configuration",
+		zap.String("server_domain", cfg.Server.Domain),
+		zap.String("auth_service", cfg.Services.Auth))
+
 	// Initialize auth middleware
 	authMiddleware, err := middleware.NewAuthMiddleware(cfg.Services.Auth)
 	if err != nil {
