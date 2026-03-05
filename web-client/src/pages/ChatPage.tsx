@@ -10,6 +10,7 @@ import './ChatPage.css'
 export function ChatPage() {
   const navigate = useNavigate()
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const isInitialized = useAuthStore((state) => state.isInitialized)
   const logout = useAuthStore((state) => state.logout)
   const startSync = useChatStore((state) => state.startSync)
   const stopSync = useChatStore((state) => state.stopSync)
@@ -18,6 +19,11 @@ export function ChatPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    // Wait for auth initialization
+    if (!isInitialized) {
+      return
+    }
+
     if (!isAuthenticated) {
       navigate('/login')
       return
@@ -37,7 +43,7 @@ export function ChatPage() {
     initializeChat()
     startSync()
     return () => stopSync()
-  }, [isAuthenticated, navigate, startSync, stopSync, loadInitialData])
+  }, [isAuthenticated, isInitialized, navigate, startSync, stopSync, loadInitialData])
 
   const handleLogout = () => {
     stopSync()
@@ -47,7 +53,7 @@ export function ChatPage() {
 
   return (
     <div className="chat-page">
-      {isLoading ? (
+      {!isInitialized || isLoading ? (
         <div className="loading-container">
           <div className="loading-spinner">Loading...</div>
         </div>

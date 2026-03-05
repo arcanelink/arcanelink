@@ -42,6 +42,9 @@ func SetupRouter(apiHandler *handler.APIHandler, authMiddleware *middleware.Auth
 	api.HandleFunc("/rooms/state", apiHandler.GetRoomState).Methods("GET")
 	api.HandleFunc("/rooms", apiHandler.GetRooms).Methods("GET")
 
+	// Link preview
+	api.HandleFunc("/link_preview", apiHandler.GetLinkPreview).Methods("GET")
+
 	// Debug: print registered routes
 	r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
 		path, _ := route.GetPathTemplate()

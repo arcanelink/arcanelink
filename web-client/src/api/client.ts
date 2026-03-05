@@ -166,6 +166,16 @@ class ApiClient {
     return this.request(`/rooms/state?room_id=${encodeURIComponent(roomId)}`)
   }
 
+  async getLinkPreview(url: string): Promise<{
+    url: string
+    title: string
+    description: string
+    image: string
+    site_name: string
+  }> {
+    return this.request(`/link_preview?url=${encodeURIComponent(url)}`)
+  }
+
   // Presence APIs
   async setPresence(status: 'online' | 'offline' | 'away', statusMsg?: string): Promise<void> {
     await this.request('/presence', {

@@ -10,8 +10,9 @@ function App() {
   const checkAuth = useAuthStore((state) => state.checkAuth)
 
   useEffect(() => {
+    console.log('App mounted, checking auth...')
     checkAuth()
-  }, [checkAuth])
+  }, [])
 
   return (
     <BrowserRouter>

@@ -26,18 +26,20 @@ export function ChatWindow() {
   const setCurrentChat = useChatStore((state) => state.setCurrentChat)
   const user = useAuthStore((state) => state.user)
 
-  const filteredMessages = messages.filter((msg) => {
-    if (!currentChat) return false
+  const filteredMessages = messages
+    .filter((msg) => {
+      if (!currentChat) return false
 
-    if (currentChat.type === 'direct') {
-      return (
-        (msg.sender === user?.user_id && msg.recipient === currentChat.id) ||
-        (msg.sender === currentChat.id && msg.recipient === user?.user_id)
-      )
-    } else {
-      return msg.room_id === currentChat.id
-    }
-  })
+      if (currentChat.type === 'direct') {
+        return (
+          (msg.sender === user?.user_id && msg.recipient === currentChat.id) ||
+          (msg.sender === currentChat.id && msg.recipient === user?.user_id)
+        )
+      } else {
+        return msg.room_id === currentChat.id
+      }
+    })
+    .sort((a, b) => a.timestamp - b.timestamp) // Sort by timestamp ascending
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
