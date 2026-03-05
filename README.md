@@ -231,7 +231,7 @@ Response includes:
 #### Send Direct Message
 
 ```http
-POST /_api/v1/send_direct
+POST /_api/v1/messages
 Authorization: Bearer <access_token>
 
 {
@@ -246,7 +246,7 @@ Authorization: Bearer <access_token>
 #### Get Direct Message History
 
 ```http
-GET /_api/v1/direct_history?peer=@bob:example.com&limit=50
+GET /_api/v1/messages?peer=@bob:example.com&limit=50
 Authorization: Bearer <access_token>
 ```
 
@@ -255,7 +255,7 @@ Authorization: Bearer <access_token>
 #### Create Room
 
 ```http
-POST /_api/v1/rooms/create
+POST /_api/v1/rooms
 Authorization: Bearer <access_token>
 
 {
@@ -267,11 +267,10 @@ Authorization: Bearer <access_token>
 #### Send Room Message
 
 ```http
-POST /_api/v1/send_room
+POST /_api/v1/rooms/!abc123:example.com/messages
 Authorization: Bearer <access_token>
 
 {
-  "room_id": "!abc123:example.com",
   "content": {
     "msgtype": "m.text",
     "body": "Hello everyone"
@@ -289,29 +288,24 @@ Authorization: Bearer <access_token>
 #### Get Room Members
 
 ```http
-GET /_api/v1/rooms/members?room_id=!abc123:example.com
+GET /_api/v1/rooms/!abc123:example.com/members
 Authorization: Bearer <access_token>
 ```
 
 #### Join Room
 
 ```http
-POST /_api/v1/rooms/join
+POST /_api/v1/rooms/!abc123:example.com/members
 Authorization: Bearer <access_token>
-
-{
-  "room_id": "!abc123:example.com"
-}
 ```
 
 #### Invite User to Room
 
 ```http
-POST /_api/v1/rooms/invite
+POST /_api/v1/rooms/!abc123:example.com/members
 Authorization: Bearer <access_token>
 
 {
-  "room_id": "!abc123:example.com",
   "user_id": "@bob:example.com"
 }
 ```
@@ -319,12 +313,8 @@ Authorization: Bearer <access_token>
 #### Leave Room
 
 ```http
-POST /_api/v1/rooms/leave
+DELETE /_api/v1/rooms/!abc123:example.com/members
 Authorization: Bearer <access_token>
-
-{
-  "room_id": "!abc123:example.com"
-}
 ```
 
 Note: Room creators cannot leave rooms, they must delete the room instead.
@@ -332,12 +322,8 @@ Note: Room creators cannot leave rooms, they must delete the room instead.
 #### Delete Room (Creator Only)
 
 ```http
-POST /_api/v1/rooms/delete
+DELETE /_api/v1/rooms/!abc123:example.com
 Authorization: Bearer <access_token>
-
-{
-  "room_id": "!abc123:example.com"
-}
 ```
 
 Note: Deleting a room automatically removes all members.
@@ -345,7 +331,7 @@ Note: Deleting a room automatically removes all members.
 #### Get Room State
 
 ```http
-GET /_api/v1/rooms/state?room_id=!abc123:example.com
+GET /_api/v1/rooms/!abc123:example.com
 Authorization: Bearer <access_token>
 ```
 

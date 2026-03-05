@@ -91,7 +91,7 @@ Authorization: Bearer <access_token>
 ### 发送私聊消息
 
 ```
-POST /_api/v1/send_direct
+POST /_api/v1/messages
 
 请求头：
 Authorization: Bearer <access_token>
@@ -115,7 +115,7 @@ Authorization: Bearer <access_token>
 ### 获取私聊历史
 
 ```
-GET /_api/v1/direct_history?peer={user_id}&limit={n}&before={token}
+GET /_api/v1/messages?peer={user_id}&limit={n}&before={token}
 
 请求头：
 Authorization: Bearer <access_token>
@@ -149,7 +149,7 @@ Authorization: Bearer <access_token>
 ### 创建Room
 
 ```
-POST /_api/v1/rooms/create
+POST /_api/v1/rooms
 
 请求头：
 Authorization: Bearer <access_token>
@@ -171,15 +171,10 @@ Authorization: Bearer <access_token>
 ### 加入Room
 
 ```
-POST /_api/v1/rooms/join
+POST /_api/v1/rooms/{room_id}/members
 
 请求头：
 Authorization: Bearer <access_token>
-
-请求体：
-{
-  "room_id": "!abc123:example.com"
-}
 
 响应：
 {
@@ -191,15 +186,10 @@ Authorization: Bearer <access_token>
 ### 离开Room
 
 ```
-POST /_api/v1/rooms/leave
+DELETE /_api/v1/rooms/{room_id}/members
 
 请求头：
 Authorization: Bearer <access_token>
-
-请求体：
-{
-  "room_id": "!abc123:example.com"
-}
 
 响应：
 {
@@ -212,14 +202,13 @@ Authorization: Bearer <access_token>
 ### 邀请用户
 
 ```
-POST /_api/v1/rooms/invite
+POST /_api/v1/rooms/{room_id}/members
 
 请求头：
 Authorization: Bearer <access_token>
 
 请求体：
 {
-  "room_id": "!abc123:example.com",
   "user_id": "@dave:example.com"
 }
 
@@ -234,15 +223,10 @@ Authorization: Bearer <access_token>
 ### 删除Room
 
 ```
-POST /_api/v1/rooms/delete
+DELETE /_api/v1/rooms/{room_id}
 
 请求头：
 Authorization: Bearer <access_token>
-
-请求体：
-{
-  "room_id": "!abc123:example.com"
-}
 
 响应：
 {
@@ -257,7 +241,7 @@ Authorization: Bearer <access_token>
 ### 获取Room状态
 
 ```
-GET /_api/v1/rooms/state?room_id=!abc123:example.com
+GET /_api/v1/rooms/{room_id}
 
 请求头：
 Authorization: Bearer <access_token>
@@ -275,7 +259,7 @@ Authorization: Bearer <access_token>
 ### 获取Room成员
 
 ```
-GET /_api/v1/rooms/members?room_id=!abc123:example.com
+GET /_api/v1/rooms/{room_id}/members
 
 请求头：
 Authorization: Bearer <access_token>
@@ -322,14 +306,13 @@ Authorization: Bearer <access_token>
 ### 发送Room消息
 
 ```
-POST /_api/v1/send_room
+POST /_api/v1/rooms/{room_id}/messages
 
 请求头：
 Authorization: Bearer <access_token>
 
 请求体：
 {
-  "room_id": "!abc123:example.com",
   "content": {
     "msgtype": "m.text",
     "body": "Hello everyone"
@@ -346,13 +329,12 @@ Authorization: Bearer <access_token>
 ### 获取Room历史
 
 ```
-GET /_api/v1/rooms/history?room_id=!abc123:example.com&limit={n}&before={token}
+GET /_api/v1/rooms/{room_id}/messages?limit={n}&before={token}
 
 请求头：
 Authorization: Bearer <access_token>
 
 参数：
-- room_id: Room ID
 - limit: 返回事件数量（默认50，最大100）
 - before: 获取此token之前的事件（可选）
 

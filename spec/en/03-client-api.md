@@ -91,7 +91,7 @@ Response:
 ### Send Direct Message
 
 ```
-POST /_api/v1/send_direct
+POST /_api/v1/messages
 
 Headers:
 Authorization: Bearer <access_token>
@@ -115,7 +115,7 @@ Response:
 ### Get Direct Message History
 
 ```
-GET /_api/v1/direct_history?peer={user_id}&limit={n}&before={token}
+GET /_api/v1/messages?peer={user_id}&limit={n}&before={token}
 
 Headers:
 Authorization: Bearer <access_token>
@@ -149,7 +149,7 @@ Response:
 ### Create Room
 
 ```
-POST /_api/v1/rooms/create
+POST /_api/v1/rooms
 
 Headers:
 Authorization: Bearer <access_token>
@@ -171,15 +171,10 @@ Response:
 ### Join Room
 
 ```
-POST /_api/v1/rooms/join
+POST /_api/v1/rooms/{room_id}/members
 
 Headers:
 Authorization: Bearer <access_token>
-
-Request body:
-{
-  "room_id": "!abc123:example.com"
-}
 
 Response:
 {
@@ -191,15 +186,10 @@ Response:
 ### Leave Room
 
 ```
-POST /_api/v1/rooms/leave
+DELETE /_api/v1/rooms/{room_id}/members
 
 Headers:
 Authorization: Bearer <access_token>
-
-Request body:
-{
-  "room_id": "!abc123:example.com"
-}
 
 Response:
 {
@@ -212,14 +202,13 @@ Response:
 ### Invite User
 
 ```
-POST /_api/v1/rooms/invite
+POST /_api/v1/rooms/{room_id}/members
 
 Headers:
 Authorization: Bearer <access_token>
 
 Request body:
 {
-  "room_id": "!abc123:example.com",
   "user_id": "@dave:example.com"
 }
 
@@ -234,15 +223,10 @@ Response:
 ### Delete Room
 
 ```
-POST /_api/v1/rooms/delete
+DELETE /_api/v1/rooms/{room_id}
 
 Headers:
 Authorization: Bearer <access_token>
-
-Request body:
-{
-  "room_id": "!abc123:example.com"
-}
 
 Response:
 {
@@ -257,7 +241,7 @@ Response:
 ### Get Room State
 
 ```
-GET /_api/v1/rooms/state?room_id=!abc123:example.com
+GET /_api/v1/rooms/{room_id}
 
 Headers:
 Authorization: Bearer <access_token>
@@ -275,7 +259,7 @@ Response:
 ### Get Room Members
 
 ```
-GET /_api/v1/rooms/members?room_id=!abc123:example.com
+GET /_api/v1/rooms/{room_id}/members
 
 Headers:
 Authorization: Bearer <access_token>
@@ -322,14 +306,13 @@ Response:
 ### Send Room Message
 
 ```
-POST /_api/v1/send_room
+POST /_api/v1/rooms/{room_id}/messages
 
 Headers:
 Authorization: Bearer <access_token>
 
 Request body:
 {
-  "room_id": "!abc123:example.com",
   "content": {
     "msgtype": "m.text",
     "body": "Hello everyone"
@@ -346,13 +329,12 @@ Response:
 ### Get Room History
 
 ```
-GET /_api/v1/rooms/history?room_id=!abc123:example.com&limit={n}&before={token}
+GET /_api/v1/rooms/{room_id}/messages?limit={n}&before={token}
 
 Headers:
 Authorization: Bearer <access_token>
 
 Parameters:
-- room_id: Room ID
 - limit: Number of events to return (default 50, max 100)
 - before: Get events before this token (optional)
 

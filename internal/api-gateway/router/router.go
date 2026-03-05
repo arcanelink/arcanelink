@@ -24,23 +24,24 @@ func SetupRouter(apiHandler *handler.APIHandler, authMiddleware *middleware.Auth
 	api.Use(rateLimiter.Limit(100)) // 100 requests per second per user
 
 	// Auth routes
-	api.HandleFunc("/logout", apiHandler.Logout).Methods("POST")
+	api.HandleFunc("/auth/logout", apiHandler.Logout).Methods("POST")
 
-	// Message routes
-	api.HandleFunc("/send_direct", apiHandler.SendDirect).Methods("POST")
-	api.HandleFunc("/send_room", apiHandler.SendRoomMessage).Methods("POST")
+	// Message routes (RESTful)
+	api.HandleFunc("/messages", apiHandler.SendDirect).Methods("POST")                    // Send direct message
+	api.HandleFunc("/messages", apiHandler.GetDirectHistory).Methods("GET")               // Get direct message history
+	api.HandleFunc("/rooms/{room_id}/messages", apiHandler.SendRoomMessage).Methods("POST") // Send room message
+	api.HandleFunc("/rooms/{room_id}/messages", apiHandler.GetRoomHistory).Methods("GET")   // Get room message history
+
+	// Room routes (RESTful)
+	api.HandleFunc("/rooms", apiHandler.CreateRoom).Methods("POST")                          // Create room
+	api.HandleFunc("/rooms", apiHandler.GetRooms).Methods("GET")                             // Get user's rooms
+	api.HandleFunc("/rooms/{room_id}", apiHandler.GetRoomState).Methods("GET")               // Get room state
+	api.HandleFunc("/rooms/{room_id}", apiHandler.DeleteRoom).Methods("DELETE")              // Delete room
+	api.HandleFunc("/rooms/{room_id}/members", apiHandler.GetRoomMembers).Methods("GET")     // Get room members
+	api.HandleFunc("/rooms/{room_id}/members", apiHandler.ManageRoomMember).Methods("POST", "DELETE") // Join/Leave/Invite
+
+	// Sync route
 	api.HandleFunc("/sync", apiHandler.Sync).Methods("GET")
-	api.HandleFunc("/direct_history", apiHandler.GetDirectHistory).Methods("GET")
-
-	// Room routes - order matters for gorilla/mux
-	api.HandleFunc("/rooms/create", apiHandler.CreateRoom).Methods("POST")
-	api.HandleFunc("/rooms/join", apiHandler.JoinRoom).Methods("POST")
-	api.HandleFunc("/rooms/leave", apiHandler.LeaveRoom).Methods("POST")
-	api.HandleFunc("/rooms/invite", apiHandler.InviteUser).Methods("POST")
-	api.HandleFunc("/rooms/delete", apiHandler.DeleteRoom).Methods("POST")
-	api.HandleFunc("/rooms/members", apiHandler.GetRoomMembers).Methods("GET")
-	api.HandleFunc("/rooms/state", apiHandler.GetRoomState).Methods("GET")
-	api.HandleFunc("/rooms", apiHandler.GetRooms).Methods("GET")
 
 	// Link preview
 	api.HandleFunc("/link_preview", apiHandler.GetLinkPreview).Methods("GET")

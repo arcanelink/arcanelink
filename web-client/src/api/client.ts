@@ -88,16 +88,16 @@ class ApiClient {
 
   // Message APIs
   async sendDirectMessage(data: SendDirectMessageRequest): Promise<{ msg_id: string; timestamp: number }> {
-    return this.request('/send_direct', {
+    return this.request('/messages', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
   async sendRoomMessage(data: SendRoomMessageRequest): Promise<{ event_id: string; timestamp: number }> {
-    return this.request('/send_room', {
+    return this.request(`/rooms/${data.room_id}/messages`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ content: data.content }),
     })
   }
 
@@ -109,41 +109,55 @@ class ApiClient {
     const params = new URLSearchParams()
     params.append('peer', peer)
     params.append('limit', limit.toString())
-    return this.request(`/direct_history?${params}`)
+    return this.request(`/messages?${params}`)
+  }
+
+  async getRoomHistory(roomId: string, limit: number = 50): Promise<{
+    events: Array<{
+      event_id: string
+      sender: string
+      event_type: string
+      content: any
+      timestamp: number
+    }>
+    prev_token: string
+    has_more: boolean
+  }> {
+    const params = new URLSearchParams()
+    params.append('limit', limit.toString())
+    return this.request(`/rooms/${roomId}/messages?${params}`)
   }
 
   // Room APIs
   async createRoom(data: CreateRoomRequest): Promise<CreateRoomResponse> {
-    return this.request('/rooms/create', {
+    return this.request('/rooms', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
   async joinRoom(roomId: string): Promise<void> {
-    await this.request(`/rooms/${roomId}/join`, {
+    await this.request(`/rooms/${roomId}/members`, {
       method: 'POST',
     })
   }
 
   async leaveRoom(roomId: string): Promise<void> {
-    await this.request('/rooms/leave', {
-      method: 'POST',
-      body: JSON.stringify({ room_id: roomId }),
+    await this.request(`/rooms/${roomId}/members`, {
+      method: 'DELETE',
     })
   }
 
   async inviteUser(roomId: string, userId: string): Promise<void> {
-    await this.request('/rooms/invite', {
+    await this.request(`/rooms/${roomId}/members`, {
       method: 'POST',
-      body: JSON.stringify({ room_id: roomId, user_id: userId }),
+      body: JSON.stringify({ user_id: userId }),
     })
   }
 
   async deleteRoom(roomId: string): Promise<void> {
-    await this.request('/rooms/delete', {
-      method: 'POST',
-      body: JSON.stringify({ room_id: roomId }),
+    await this.request(`/rooms/${roomId}`, {
+      method: 'DELETE',
     })
   }
 
@@ -152,7 +166,7 @@ class ApiClient {
   }
 
   async getRoomMembers(roomId: string): Promise<{ members: Array<{ user_id: string; joined_at: number }> }> {
-    return this.request(`/rooms/members?room_id=${encodeURIComponent(roomId)}`)
+    return this.request(`/rooms/${roomId}/members`)
   }
 
   async getRoomState(roomId: string): Promise<{
@@ -163,7 +177,7 @@ class ApiClient {
     created_at: number
     member_count: number
   }> {
-    return this.request(`/rooms/state?room_id=${encodeURIComponent(roomId)}`)
+    return this.request(`/rooms/${roomId}`)
   }
 
   async getLinkPreview(url: string): Promise<{

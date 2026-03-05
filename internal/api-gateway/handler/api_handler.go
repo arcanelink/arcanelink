@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/arcane/arcanelink/internal/api-gateway/middleware"
 	"github.com/arcane/arcanelink/pkg/logger"
 	"github.com/arcane/arcanelink/pkg/models"
@@ -367,7 +368,18 @@ func (h *APIHandler) GetDirectHistory(w http.ResponseWriter, r *http.Request) {
 func (h *APIHandler) SendRoomMessage(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 
-	var req models.SendRoomMessageRequest
+	// Extract room_id from URL path
+	vars := mux.Vars(r)
+	roomID := vars["room_id"]
+
+	if roomID == "" {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Missing room_id in path")
+		return
+	}
+
+	var req struct {
+		Content *models.MessageContent `json:"content"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
 		return
@@ -376,7 +388,7 @@ func (h *APIHandler) SendRoomMessage(w http.ResponseWriter, r *http.Request) {
 	infoJSON, _ := json.Marshal(req.Content.Info)
 
 	resp, err := h.roomClient.SendRoomMessage(context.Background(), &roompb.SendRoomMessageRequest{
-		RoomId: req.RoomID,
+		RoomId: roomID,
 		Sender: userID,
 		Msgtype: string(req.Content.MsgType),
 		Body:    req.Content.Body,
@@ -393,6 +405,127 @@ func (h *APIHandler) SendRoomMessage(w http.ResponseWriter, r *http.Request) {
 		"event_id": resp.EventId,
 		"timestamp": resp.Timestamp,
 	})
+}
+
+func (h *APIHandler) GetRoomHistory(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
+	// Extract room_id from URL path
+	vars := mux.Vars(r)
+	roomID := vars["room_id"]
+
+	if roomID == "" {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Missing room_id in path")
+		return
+	}
+
+	limitStr := r.URL.Query().Get("limit")
+	before := r.URL.Query().Get("before")
+
+	limit := 50
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil {
+			limit = l
+		}
+	}
+
+	resp, err := h.roomClient.GetRoomHistory(context.Background(), &roompb.GetRoomHistoryRequest{
+		RoomId: roomID,
+		UserId: userID,
+		Limit:  int32(limit),
+		Before: before,
+	})
+	if err != nil {
+		logger.Error("Failed to get room history", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to get room history")
+		return
+	}
+
+	events := make([]map[string]interface{}, len(resp.Events))
+	for i, event := range resp.Events {
+		var content map[string]interface{}
+		if event.ContentJson != "" {
+			json.Unmarshal([]byte(event.ContentJson), &content)
+		}
+
+		events[i] = map[string]interface{}{
+			"event_id":   event.EventId,
+			"sender":     event.Sender,
+			"event_type": event.EventType,
+			"content":    content,
+			"timestamp":  event.Timestamp,
+		}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"events":     events,
+		"prev_token": resp.PrevToken,
+		"has_more":   resp.HasMore,
+	})
+}
+
+func (h *APIHandler) ManageRoomMember(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
+	// Extract room_id from URL path
+	vars := mux.Vars(r)
+	roomID := vars["room_id"]
+
+	if roomID == "" {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Missing room_id in path")
+		return
+	}
+
+	switch r.Method {
+	case "POST":
+		// POST can be either join (no body) or invite (with user_id in body)
+		var req struct {
+			UserID string `json:"user_id,omitempty"`
+		}
+		json.NewDecoder(r.Body).Decode(&req)
+
+		if req.UserID == "" {
+			// Join room (add self)
+			_, err := h.roomClient.JoinRoom(context.Background(), &roompb.JoinRoomRequest{
+				RoomId: roomID,
+				UserId: userID,
+			})
+			if err != nil {
+				logger.Error("Failed to join room", zap.Error(err))
+				respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to join room")
+				return
+			}
+		} else {
+			// Invite user (add other user)
+			_, err := h.roomClient.InviteUser(context.Background(), &roompb.InviteUserRequest{
+				RoomId:  roomID,
+				Inviter: userID,
+				Invitee: req.UserID,
+			})
+			if err != nil {
+				logger.Error("Failed to invite user", zap.Error(err))
+				respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to invite user")
+				return
+			}
+		}
+		respondJSON(w, http.StatusOK, map[string]bool{"success": true})
+
+	case "DELETE":
+		// Leave room (remove self)
+		_, err := h.roomClient.LeaveRoom(context.Background(), &roompb.LeaveRoomRequest{
+			RoomId: roomID,
+			UserId: userID,
+		})
+		if err != nil {
+			logger.Error("Failed to leave room", zap.Error(err))
+			respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to leave room")
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]bool{"success": true})
+
+	default:
+		respondError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed")
+	}
 }
 
 // Room handlers
@@ -499,9 +632,12 @@ func (h *APIHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *APIHandler) GetRoomMembers(w http.ResponseWriter, r *http.Request) {
-	roomID := r.URL.Query().Get("room_id")
+	// Extract room_id from URL path
+	vars := mux.Vars(r)
+	roomID := vars["room_id"]
+
 	if roomID == "" {
-		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Missing room_id parameter")
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Missing room_id in path")
 		return
 	}
 
@@ -552,9 +688,12 @@ func (h *APIHandler) InviteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *APIHandler) GetRoomState(w http.ResponseWriter, r *http.Request) {
-	roomID := r.URL.Query().Get("room_id")
+	// Extract room_id from URL path
+	vars := mux.Vars(r)
+	roomID := vars["room_id"]
+
 	if roomID == "" {
-		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Missing room_id parameter")
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Missing room_id in path")
 		return
 	}
 
@@ -580,16 +719,17 @@ func (h *APIHandler) GetRoomState(w http.ResponseWriter, r *http.Request) {
 func (h *APIHandler) DeleteRoom(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 
-	var req struct {
-		RoomID string `json:"room_id"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+	// Extract room_id from URL path
+	vars := mux.Vars(r)
+	roomID := vars["room_id"]
+
+	if roomID == "" {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Missing room_id in path")
 		return
 	}
 
 	_, err := h.roomClient.DeleteRoom(context.Background(), &roompb.DeleteRoomRequest{
-		RoomId: req.RoomID,
+		RoomId: roomID,
 		UserId: userID,
 	})
 	if err != nil {
