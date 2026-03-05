@@ -149,7 +149,7 @@ Authorization: Bearer <access_token>
 ### 创建Room
 
 ```
-POST /_api/v1/room/create
+POST /_api/v1/rooms/create
 
 请求头：
 Authorization: Bearer <access_token>
@@ -171,7 +171,7 @@ Authorization: Bearer <access_token>
 ### 加入Room
 
 ```
-POST /_api/v1/room/join
+POST /_api/v1/rooms/join
 
 请求头：
 Authorization: Bearer <access_token>
@@ -191,7 +191,7 @@ Authorization: Bearer <access_token>
 ### 离开Room
 
 ```
-POST /_api/v1/room/leave
+POST /_api/v1/rooms/leave
 
 请求头：
 Authorization: Bearer <access_token>
@@ -207,10 +207,12 @@ Authorization: Bearer <access_token>
 }
 ```
 
+**注意**：Room创建者不能离开Room，只能删除Room。
+
 ### 邀请用户
 
 ```
-POST /_api/v1/room/invite
+POST /_api/v1/rooms/invite
 
 请求头：
 Authorization: Bearer <access_token>
@@ -227,10 +229,53 @@ Authorization: Bearer <access_token>
 }
 ```
 
+**注意**：系统会验证被邀请用户是否存在，以及是否已经是Room成员。
+
+### 删除Room
+
+```
+POST /_api/v1/rooms/delete
+
+请求头：
+Authorization: Bearer <access_token>
+
+请求体：
+{
+  "room_id": "!abc123:example.com"
+}
+
+响应：
+{
+  "success": true
+}
+```
+
+**权限要求**：只有Room创建者可以删除Room。
+
+**行为**：删除Room时会自动清理所有成员。
+
+### 获取Room状态
+
+```
+GET /_api/v1/rooms/state?room_id=!abc123:example.com
+
+请求头：
+Authorization: Bearer <access_token>
+
+响应：
+{
+  "room_id": "!abc123:example.com",
+  "name": "My Group Chat",
+  "topic": "Discussion about project",
+  "creator": "@alice:example.com",
+  "created_at": 1234567890000
+}
+```
+
 ### 获取Room成员
 
 ```
-GET /_api/v1/room/{room_id}/members
+GET /_api/v1/rooms/members?room_id=!abc123:example.com
 
 请求头：
 Authorization: Bearer <access_token>
@@ -301,12 +346,13 @@ Authorization: Bearer <access_token>
 ### 获取Room历史
 
 ```
-GET /_api/v1/room/{room_id}/history?limit={n}&before={token}
+GET /_api/v1/rooms/history?room_id=!abc123:example.com&limit={n}&before={token}
 
 请求头：
 Authorization: Bearer <access_token>
 
 参数：
+- room_id: Room ID
 - limit: 返回事件数量（默认50，最大100）
 - before: 获取此token之前的事件（可选）
 
@@ -328,6 +374,34 @@ Authorization: Bearer <access_token>
   "has_more": true
 }
 ```
+
+## 链接预览
+
+### 获取链接预览
+
+```
+GET /_api/v1/link_preview?url={encoded_url}
+
+请求头：
+Authorization: Bearer <access_token>
+
+参数：
+- url: URL编码的网页地址
+
+响应：
+{
+  "url": "https://example.com",
+  "title": "Example Website",
+  "description": "This is an example website",
+  "image": "https://example.com/image.jpg",
+  "site_name": "Example"
+}
+```
+
+**功能说明**：
+- 自动抓取网页的Open Graph和Twitter Card元数据
+- 如果无法获取元数据，返回基本信息（URL作为标题）
+- 用于在消息中显示富链接预览卡片
 
 ## 用户信息
 

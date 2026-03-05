@@ -40,6 +40,20 @@
 }
 ```
 
+**链接检测**：客户端应自动检测消息中的URL并将其渲染为可点击链接。
+
+**链接预览**：客户端可以调用`/link_preview` API获取链接的元数据（标题、描述、图片）并显示富预览卡片。
+
+示例带链接的消息：
+```json
+{
+  "msgtype": "m.text",
+  "body": "Check out this website: https://example.com"
+}
+```
+
+**表情符号**：客户端应支持Unicode表情符号的输入和显示。
+
 ### 图片消息
 
 ```json

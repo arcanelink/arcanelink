@@ -149,7 +149,7 @@ Response:
 ### Create Room
 
 ```
-POST /_api/v1/room/create
+POST /_api/v1/rooms/create
 
 Headers:
 Authorization: Bearer <access_token>
@@ -171,7 +171,7 @@ Response:
 ### Join Room
 
 ```
-POST /_api/v1/room/join
+POST /_api/v1/rooms/join
 
 Headers:
 Authorization: Bearer <access_token>
@@ -191,7 +191,7 @@ Response:
 ### Leave Room
 
 ```
-POST /_api/v1/room/leave
+POST /_api/v1/rooms/leave
 
 Headers:
 Authorization: Bearer <access_token>
@@ -207,10 +207,12 @@ Response:
 }
 ```
 
+**Note**: Room creators cannot leave rooms, they must delete the room instead.
+
 ### Invite User
 
 ```
-POST /_api/v1/room/invite
+POST /_api/v1/rooms/invite
 
 Headers:
 Authorization: Bearer <access_token>
@@ -227,10 +229,53 @@ Response:
 }
 ```
 
+**Note**: The system validates that the invited user exists and is not already a room member.
+
+### Delete Room
+
+```
+POST /_api/v1/rooms/delete
+
+Headers:
+Authorization: Bearer <access_token>
+
+Request body:
+{
+  "room_id": "!abc123:example.com"
+}
+
+Response:
+{
+  "success": true
+}
+```
+
+**Permission**: Only the room creator can delete the room.
+
+**Behavior**: Deleting a room automatically removes all members.
+
+### Get Room State
+
+```
+GET /_api/v1/rooms/state?room_id=!abc123:example.com
+
+Headers:
+Authorization: Bearer <access_token>
+
+Response:
+{
+  "room_id": "!abc123:example.com",
+  "name": "My Group Chat",
+  "topic": "Discussion about project",
+  "creator": "@alice:example.com",
+  "created_at": 1234567890000
+}
+```
+
 ### Get Room Members
 
 ```
-GET /_api/v1/room/{room_id}/members
+GET /_api/v1/rooms/members?room_id=!abc123:example.com
 
 Headers:
 Authorization: Bearer <access_token>
@@ -301,12 +346,13 @@ Response:
 ### Get Room History
 
 ```
-GET /_api/v1/room/{room_id}/history?limit={n}&before={token}
+GET /_api/v1/rooms/history?room_id=!abc123:example.com&limit={n}&before={token}
 
 Headers:
 Authorization: Bearer <access_token>
 
 Parameters:
+- room_id: Room ID
 - limit: Number of events to return (default 50, max 100)
 - before: Get events before this token (optional)
 
@@ -328,6 +374,34 @@ Response:
   "has_more": true
 }
 ```
+
+## Link Preview
+
+### Get Link Preview
+
+```
+GET /_api/v1/link_preview?url={encoded_url}
+
+Headers:
+Authorization: Bearer <access_token>
+
+Parameters:
+- url: URL-encoded webpage address
+
+Response:
+{
+  "url": "https://example.com",
+  "title": "Example Website",
+  "description": "This is an example website",
+  "image": "https://example.com/image.jpg",
+  "site_name": "Example"
+}
+```
+
+**Features**:
+- Automatically fetches Open Graph and Twitter Card metadata from webpages
+- Returns basic information (URL as title) if metadata cannot be retrieved
+- Used to display rich link preview cards in messages
 
 ## User Information
 

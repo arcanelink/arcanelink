@@ -40,6 +40,20 @@ The protocol defines two major message categories:
 }
 ```
 
+**Link Detection**: Clients should automatically detect URLs in messages and render them as clickable links.
+
+**Link Preview**: Clients can call the `/link_preview` API to fetch link metadata (title, description, image) and display rich preview cards.
+
+Example message with link:
+```json
+{
+  "msgtype": "m.text",
+  "body": "Check out this website: https://example.com"
+}
+```
+
+**Emoji Support**: Clients should support Unicode emoji input and display.
+
 ### Image Message
 
 ```json
