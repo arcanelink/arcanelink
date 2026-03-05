@@ -81,13 +81,32 @@ export const useChatStore = create<ChatState>((set, get) => ({
         data.direct_messages.forEach((msg) => state.addMessage(msg))
       }
 
+      // Process room events
+      if (data.room_events && data.room_events.length > 0) {
+        data.room_events.forEach((event) => {
+          // Only process room message events
+          if (event.event_type === 'm.room.message') {
+            // Convert room event to message format
+            const message: Message = {
+              msg_id: event.event_id,
+              sender: event.sender,
+              room_id: event.room_id,
+              content: {
+                msgtype: event.content.msgtype || 'm.text',
+                body: event.content.body || '',
+                url: event.content.url,
+              },
+              timestamp: event.timestamp,
+            }
+            state.addMessage(message)
+          }
+        })
+      }
+
       // Update presence
       if (data.presence_updates && data.presence_updates.length > 0) {
         state.updatePresence(data.presence_updates)
       }
-
-      // Handle room events if needed
-      // TODO: Process room_events when room functionality is implemented
     })
   },
 

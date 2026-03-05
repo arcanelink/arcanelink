@@ -21,6 +21,15 @@ export interface MessageContent {
   url?: string
 }
 
+export interface RoomEvent {
+  event_id: string
+  room_id: string
+  sender: string
+  event_type: string
+  content: any
+  timestamp: number
+}
+
 // Room types
 export interface Room {
   room_id: string
@@ -75,7 +84,7 @@ export interface SendRoomMessageRequest {
 export interface SyncResponse {
   next_token: string
   direct_messages?: Message[]
-  room_events?: any[]
+  room_events?: RoomEvent[]
   presence_updates?: Presence[]
 }
 

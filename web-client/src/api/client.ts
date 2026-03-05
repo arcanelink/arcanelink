@@ -94,7 +94,7 @@ class ApiClient {
     })
   }
 
-  async sendRoomMessage(data: SendRoomMessageRequest): Promise<{ event_id: string }> {
+  async sendRoomMessage(data: SendRoomMessageRequest): Promise<{ event_id: string; timestamp: number }> {
     return this.request('/send_room', {
       method: 'POST',
       body: JSON.stringify(data),

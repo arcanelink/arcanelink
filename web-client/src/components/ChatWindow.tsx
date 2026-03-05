@@ -57,10 +57,20 @@ export function ChatWindow() {
         }
         useChatStore.getState().addMessage(sentMessage)
       } else {
-        await apiClient.sendRoomMessage({
+        const response = await apiClient.sendRoomMessage({
           room_id: currentChat.id,
           content: { msgtype: 'm.text', body: messageText },
         })
+
+        // Optimistically add the sent message to local state
+        const sentMessage = {
+          msg_id: response.event_id,
+          sender: user?.user_id || '',
+          room_id: currentChat.id,
+          content: { msgtype: 'm.text' as const, body: messageText },
+          timestamp: response.timestamp,
+        }
+        useChatStore.getState().addMessage(sentMessage)
       }
       setMessageText('')
     } catch (error) {
