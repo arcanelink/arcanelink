@@ -35,9 +35,9 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     }
 
     if (this.token) {
@@ -117,6 +117,13 @@ class ApiClient {
   async leaveRoom(roomId: string): Promise<void> {
     await this.request(`/rooms/${roomId}/leave`, {
       method: 'POST',
+    })
+  }
+
+  async deleteRoom(roomId: string): Promise<void> {
+    await this.request('/rooms/delete', {
+      method: 'POST',
+      body: JSON.stringify({ room_id: roomId }),
     })
   }
 

@@ -428,6 +428,30 @@ func (h *APIHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{"rooms": rooms})
 }
 
+func (h *APIHandler) DeleteRoom(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
+	var req struct {
+		RoomID string `json:"room_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+		return
+	}
+
+	_, err := h.roomClient.DeleteRoom(context.Background(), &roompb.DeleteRoomRequest{
+		RoomId: req.RoomID,
+		UserId: userID,
+	})
+	if err != nil {
+		logger.Error("Failed to delete room", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to delete room")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
 // Helper functions
 
 func respondJSON(w http.ResponseWriter, status int, data interface{}) {

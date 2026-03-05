@@ -8,10 +8,14 @@ import './ChatWindow.css'
 export function ChatWindow() {
   const [messageText, setMessageText] = useState('')
   const [sending, setSending] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const currentChat = useChatStore((state) => state.currentChat)
   const messages = useChatStore((state) => state.messages)
+  const rooms = useChatStore((state) => state.rooms)
+  const removeRoom = useChatStore((state) => state.removeRoom)
+  const setCurrentChat = useChatStore((state) => state.setCurrentChat)
   const user = useAuthStore((state) => state.user)
 
   const filteredMessages = messages.filter((msg) => {
@@ -67,6 +71,25 @@ export function ChatWindow() {
     }
   }
 
+  const handleDeleteRoom = async () => {
+    if (!currentChat || currentChat.type !== 'room') return
+
+    try {
+      await apiClient.deleteRoom(currentChat.id)
+      removeRoom(currentChat.id)
+      setCurrentChat(null, null)
+      setShowDeleteConfirm(false)
+      alert('Room deleted successfully')
+    } catch (error) {
+      console.error('Failed to delete room:', error)
+      alert('Failed to delete room. You may not have permission.')
+    }
+  }
+
+  const currentRoom = currentChat?.type === 'room'
+    ? rooms.find(r => r.room_id === currentChat.id)
+    : null
+
   if (!currentChat) {
     return (
       <div className="chat-window">
@@ -81,8 +104,34 @@ export function ChatWindow() {
   return (
     <div className="chat-window">
       <div className="chat-header">
-        <h2>{currentChat.type === 'direct' ? currentChat.id : `# ${currentChat.id}`}</h2>
+        <h2>{currentChat.type === 'direct' ? currentChat.id : `# ${currentRoom?.name || currentChat.id}`}</h2>
+        {currentChat.type === 'room' && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="btn-delete"
+            title="Delete room"
+          >
+            🗑️
+          </button>
+        )}
       </div>
+
+      {showDeleteConfirm && (
+        <div className="delete-confirm-overlay">
+          <div className="delete-confirm-dialog">
+            <h3>Delete Room?</h3>
+            <p>Are you sure you want to delete this room? This action cannot be undone.</p>
+            <div className="delete-confirm-buttons">
+              <button onClick={() => setShowDeleteConfirm(false)} className="btn-cancel">
+                Cancel
+              </button>
+              <button onClick={handleDeleteRoom} className="btn-confirm-delete">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="messages-container">
         {filteredMessages.map((msg) => (

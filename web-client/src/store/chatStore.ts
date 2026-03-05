@@ -10,8 +10,9 @@ interface ChatState {
 
   addMessage: (message: Message) => void
   addRoom: (room: Room) => void
+  removeRoom: (roomId: string) => void
   updatePresence: (presence: Presence[]) => void
-  setCurrentChat: (type: 'direct' | 'room', id: string) => void
+  setCurrentChat: (type: 'direct' | 'room' | null, id: string | null) => void
   startSync: () => void
   stopSync: () => void
 }
@@ -41,6 +42,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }))
   },
 
+  removeRoom: (roomId) => {
+    set((state) => ({
+      rooms: state.rooms.filter((r) => r.room_id !== roomId),
+    }))
+  },
+
   updatePresence: (presenceList) => {
     set((state) => {
       const newPresence = { ...state.presence }
@@ -52,7 +59,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setCurrentChat: (type, id) => {
-    set({ currentChat: { type, id } })
+    if (type === null || id === null) {
+      set({ currentChat: null })
+    } else {
+      set({ currentChat: { type, id } })
+    }
   },
 
   startSync: () => {
