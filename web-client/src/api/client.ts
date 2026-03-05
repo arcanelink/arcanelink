@@ -86,7 +86,7 @@ class ApiClient {
   }
 
   // Message APIs
-  async sendDirectMessage(data: SendDirectMessageRequest): Promise<{ message_id: string }> {
+  async sendDirectMessage(data: SendDirectMessageRequest): Promise<{ msg_id: string; timestamp: number }> {
     return this.request('/send_direct', {
       method: 'POST',
       body: JSON.stringify(data),

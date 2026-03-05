@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -87,8 +88,11 @@ func (h *GRPCHandler) GetDirectHistory(ctx context.Context, req *pb.GetDirectHis
 func (h *GRPCHandler) Sync(ctx context.Context, req *pb.SyncRequest) (*pb.SyncResponse, error) {
 	var sinceTimestamp int64
 	if req.Since != "" {
-		// Parse since token
-		sinceTimestamp = 0
+		// Parse since token (format: "t_<timestamp>")
+		var timestamp int64
+		if _, err := fmt.Sscanf(req.Since, "t_%d", &timestamp); err == nil {
+			sinceTimestamp = timestamp
+		}
 	}
 
 	timeout := time.Duration(req.Timeout) * time.Millisecond

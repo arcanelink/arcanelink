@@ -142,9 +142,11 @@ func (s *MessageService) Sync(ctx context.Context, userID string, sinceTimestamp
 		}, nil
 	}
 
-	// No new messages, subscribe to long poll
+	// No new messages, subscribe to long poll with 1 second timeout
+	// This reduces server load while still being responsive
+	shortTimeout := 1 * time.Second
 	logger.Debug("User subscribing to long poll", zap.String("user_id", userID))
-	notification, err := s.longPoll.Subscribe(ctx, userID, timeout)
+	notification, err := s.longPoll.Subscribe(ctx, userID, shortTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("long poll error: %w", err)
 	}

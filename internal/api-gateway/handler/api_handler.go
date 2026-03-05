@@ -19,9 +19,10 @@ import (
 type APIHandler struct {
 	authClient    authpb.AuthServiceClient
 	messageClient messagepb.MessageServiceClient
+	serverDomain  string
 }
 
-func NewAPIHandler(authAddr, messageAddr string) (*APIHandler, error) {
+func NewAPIHandler(authAddr, messageAddr, serverDomain string) (*APIHandler, error) {
 	authConn, err := grpc.Dial(authAddr, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
@@ -35,20 +36,27 @@ func NewAPIHandler(authAddr, messageAddr string) (*APIHandler, error) {
 	return &APIHandler{
 		authClient:    authpb.NewAuthServiceClient(authConn),
 		messageClient: messagepb.NewMessageServiceClient(messageConn),
+		serverDomain:  serverDomain,
 	}, nil
 }
 
 // Auth handlers
 
 func (h *APIHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req models.LoginRequest
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
 		return
 	}
 
+	// Construct user_id from username and server domain
+	userID := "@" + req.Username + ":" + h.serverDomain
+
 	resp, err := h.authClient.Login(context.Background(), &authpb.LoginRequest{
-		UserId:   req.UserID,
+		UserId:   userID,
 		Password: req.Password,
 	})
 	if err != nil {
@@ -60,6 +68,49 @@ func (h *APIHandler) Login(w http.ResponseWriter, r *http.Request) {
 		AccessToken: resp.AccessToken,
 		UserID:      resp.UserId,
 		ExpiresIn:   resp.ExpiresIn,
+	})
+}
+
+func (h *APIHandler) Register(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Domain   string `json:"domain"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+		return
+	}
+
+	// Construct user_id from username and domain
+	userID := "@" + req.Username + ":" + req.Domain
+
+	resp, err := h.authClient.CreateUser(context.Background(), &authpb.CreateUserRequest{
+		UserId:   userID,
+		Username: req.Username,
+		Password: req.Password,
+	})
+	if err != nil {
+		logger.Error("Failed to create user", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Registration failed")
+		return
+	}
+
+	// After creating user, login to get access token
+	loginResp, err := h.authClient.Login(context.Background(), &authpb.LoginRequest{
+		UserId:   userID,
+		Password: req.Password,
+	})
+	if err != nil {
+		logger.Error("Failed to login after registration", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Registration succeeded but login failed")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, models.LoginResponse{
+		AccessToken: loginResp.AccessToken,
+		UserID:      resp.UserId,
+		ExpiresIn:   loginResp.ExpiresIn,
 	})
 }
 

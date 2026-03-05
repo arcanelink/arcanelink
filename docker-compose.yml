@@ -165,6 +165,7 @@ services:
       - MESSAGE_SERVICE_ADDR=message:50052
       - ROOM_SERVICE_ADDR=room:50053
       - PRESENCE_SERVICE_ADDR=presence:50054
+      - SERVER_DOMAIN=localhost
       - HTTP_PORT=8080
     depends_on:
       - auth

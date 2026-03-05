@@ -15,7 +15,8 @@ func SetupRouter(apiHandler *handler.APIHandler, authMiddleware *middleware.Auth
 	r.Use(corsMiddleware)
 
 	// Public routes (no authentication required)
-	r.HandleFunc("/_api/v1/login", apiHandler.Login).Methods("POST")
+	r.HandleFunc("/_api/v1/auth/login", apiHandler.Login).Methods("POST")
+	r.HandleFunc("/_api/v1/auth/register", apiHandler.Register).Methods("POST")
 
 	// Protected routes (authentication required)
 	api := r.PathPrefix("/_api/v1").Subrouter()

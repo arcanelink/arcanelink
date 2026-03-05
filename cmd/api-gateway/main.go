@@ -37,6 +37,7 @@ func main() {
 	apiHandler, err := handler.NewAPIHandler(
 		cfg.Services.Auth,
 		cfg.Services.Message,
+		cfg.Server.Domain,
 	)
 	if err != nil {
 		logger.Fatal("Failed to initialize API handler", zap.Error(err))

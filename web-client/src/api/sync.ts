@@ -27,7 +27,7 @@ export class SyncManager {
         }
       } catch (error) {
         console.error('Sync error:', error)
-        // Wait before retrying
+        // Wait before retrying on error
         await new Promise(resolve => setTimeout(resolve, 5000))
       }
     }

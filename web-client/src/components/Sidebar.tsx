@@ -21,7 +21,7 @@ export function Sidebar({ onCreateRoom, onLogout }: SidebarProps) {
     new Set(
       messages
         .filter((m) => !m.room_id)
-        .map((m) => (m.sender_id === user?.user_id ? m.recipient_id : m.sender_id))
+        .map((m) => (m.sender === user?.user_id ? m.recipient : m.sender))
         .filter(Boolean)
     )
   )

@@ -20,6 +20,7 @@ type ServerConfig struct {
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
 	GRPCPort int    `mapstructure:"grpc_port"`
+	Domain   string `mapstructure:"domain"`
 }
 
 // DatabaseConfig holds database configuration
@@ -63,6 +64,7 @@ func Load(configPath string) (*Config, error) {
 	// Set defaults
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("server.port", 8080)
+	viper.SetDefault("server.domain", "localhost")
 	viper.SetDefault("database.ssl_mode", "disable")
 	viper.SetDefault("redis.db", 0)
 	viper.SetDefault("jwt.expires_in", 86400) // 24 hours
@@ -84,35 +86,70 @@ func Load(configPath string) (*Config, error) {
 
 // LoadFromEnv loads configuration from environment variables only
 func LoadFromEnv() *Config {
+	v := viper.New()
+	v.AutomaticEnv()
+
+	// Bind environment variables explicitly
+	v.BindEnv("SERVER_HOST")
+	v.BindEnv("SERVER_PORT")
+	v.BindEnv("SERVER_DOMAIN")
+	v.BindEnv("GRPC_PORT")
+	v.BindEnv("DB_HOST")
+	v.BindEnv("DB_PORT")
+	v.BindEnv("DB_NAME")
+	v.BindEnv("DB_USER")
+	v.BindEnv("DB_PASSWORD")
+	v.BindEnv("DB_SSL_MODE")
+	v.BindEnv("REDIS_ADDR")
+	v.BindEnv("REDIS_PASSWORD")
+	v.BindEnv("REDIS_DB")
+	v.BindEnv("AUTH_SERVICE_ADDR")
+	v.BindEnv("MESSAGE_SERVICE_ADDR")
+	v.BindEnv("ROOM_SERVICE_ADDR")
+	v.BindEnv("PRESENCE_SERVICE_ADDR")
+	v.BindEnv("FEDERATION_SERVICE_ADDR")
+	v.BindEnv("JWT_SECRET")
+	v.BindEnv("JWT_EXPIRES_IN")
+	v.BindEnv("HTTP_PORT")
+
+	// Set defaults
+	v.SetDefault("SERVER_HOST", "0.0.0.0")
+	v.SetDefault("SERVER_PORT", 8080)
+	v.SetDefault("SERVER_DOMAIN", "localhost")
+	v.SetDefault("DB_SSL_MODE", "disable")
+	v.SetDefault("REDIS_DB", 0)
+	v.SetDefault("JWT_EXPIRES_IN", 86400)
+
 	return &Config{
 		Server: ServerConfig{
-			Host:     viper.GetString("SERVER_HOST"),
-			Port:     viper.GetInt("SERVER_PORT"),
-			GRPCPort: viper.GetInt("GRPC_PORT"),
+			Host:     v.GetString("SERVER_HOST"),
+			Port:     v.GetInt("SERVER_PORT"),
+			GRPCPort: v.GetInt("GRPC_PORT"),
+			Domain:   v.GetString("SERVER_DOMAIN"),
 		},
 		Database: DatabaseConfig{
-			Host:     viper.GetString("DB_HOST"),
-			Port:     viper.GetInt("DB_PORT"),
-			Name:     viper.GetString("DB_NAME"),
-			User:     viper.GetString("DB_USER"),
-			Password: viper.GetString("DB_PASSWORD"),
-			SSLMode:  viper.GetString("DB_SSL_MODE"),
+			Host:     v.GetString("DB_HOST"),
+			Port:     v.GetInt("DB_PORT"),
+			Name:     v.GetString("DB_NAME"),
+			User:     v.GetString("DB_USER"),
+			Password: v.GetString("DB_PASSWORD"),
+			SSLMode:  v.GetString("DB_SSL_MODE"),
 		},
 		Redis: RedisConfig{
-			Addr:     viper.GetString("REDIS_ADDR"),
-			Password: viper.GetString("REDIS_PASSWORD"),
-			DB:       viper.GetInt("REDIS_DB"),
+			Addr:     v.GetString("REDIS_ADDR"),
+			Password: v.GetString("REDIS_PASSWORD"),
+			DB:       v.GetInt("REDIS_DB"),
 		},
 		Services: ServicesConfig{
-			Auth:       viper.GetString("AUTH_SERVICE_ADDR"),
-			Message:    viper.GetString("MESSAGE_SERVICE_ADDR"),
-			Room:       viper.GetString("ROOM_SERVICE_ADDR"),
-			Presence:   viper.GetString("PRESENCE_SERVICE_ADDR"),
-			Federation: viper.GetString("FEDERATION_SERVICE_ADDR"),
+			Auth:       v.GetString("AUTH_SERVICE_ADDR"),
+			Message:    v.GetString("MESSAGE_SERVICE_ADDR"),
+			Room:       v.GetString("ROOM_SERVICE_ADDR"),
+			Presence:   v.GetString("PRESENCE_SERVICE_ADDR"),
+			Federation: v.GetString("FEDERATION_SERVICE_ADDR"),
 		},
 		JWT: JWTConfig{
-			Secret:    viper.GetString("JWT_SECRET"),
-			ExpiresIn: viper.GetInt64("JWT_EXPIRES_IN"),
+			Secret:    v.GetString("JWT_SECRET"),
+			ExpiresIn: v.GetInt64("JWT_EXPIRES_IN"),
 		},
 	}
 }

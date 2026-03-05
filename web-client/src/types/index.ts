@@ -7,12 +7,12 @@ export interface User {
 
 // Message types
 export interface Message {
-  message_id: string
-  sender_id: string
-  recipient_id?: string
+  msg_id: string
+  sender: string
+  recipient?: string
   room_id?: string
   content: MessageContent
-  created_at: string
+  timestamp: number
 }
 
 export interface MessageContent {
@@ -74,9 +74,9 @@ export interface SendRoomMessageRequest {
 
 export interface SyncResponse {
   next_token: string
-  messages: Message[]
-  presence: Presence[]
-  rooms: Room[]
+  direct_messages?: Message[]
+  room_events?: any[]
+  presence_updates?: Presence[]
 }
 
 export interface CreateRoomRequest {

@@ -19,8 +19,8 @@ export function ChatWindow() {
 
     if (currentChat.type === 'direct') {
       return (
-        (msg.sender_id === user?.user_id && msg.recipient_id === currentChat.id) ||
-        (msg.sender_id === currentChat.id && msg.recipient_id === user?.user_id)
+        (msg.sender === user?.user_id && msg.recipient === currentChat.id) ||
+        (msg.sender === currentChat.id && msg.recipient === user?.user_id)
       )
     } else {
       return msg.room_id === currentChat.id
@@ -38,10 +38,20 @@ export function ChatWindow() {
     setSending(true)
     try {
       if (currentChat.type === 'direct') {
-        await apiClient.sendDirectMessage({
+        const response = await apiClient.sendDirectMessage({
           recipient: currentChat.id,
           content: { msgtype: 'm.text', body: messageText },
         })
+
+        // Optimistically add the sent message to local state
+        const sentMessage = {
+          msg_id: response.msg_id,
+          sender: user?.user_id || '',
+          recipient: currentChat.id,
+          content: { msgtype: 'm.text' as const, body: messageText },
+          timestamp: response.timestamp,
+        }
+        useChatStore.getState().addMessage(sentMessage)
       } else {
         await apiClient.sendRoomMessage({
           room_id: currentChat.id,
@@ -76,7 +86,7 @@ export function ChatWindow() {
 
       <div className="messages-container">
         {filteredMessages.map((msg) => (
-          <MessageItem key={msg.message_id} message={msg} isOwn={msg.sender_id === user?.user_id} />
+          <MessageItem key={msg.msg_id} message={msg} isOwn={msg.sender === user?.user_id} />
         ))}
         <div ref={messagesEndRef} />
       </div>

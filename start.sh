@@ -40,7 +40,7 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
-npm run dev &
+npm run dev -- --host &
 WEB_PID=$!
 
 echo ""

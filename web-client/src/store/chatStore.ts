@@ -23,9 +23,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentChat: null,
 
   addMessage: (message) => {
-    set((state) => ({
-      messages: [...state.messages, message],
-    }))
+    set((state) => {
+      // Check if message already exists to avoid duplicates
+      const exists = state.messages.some((m) => m.msg_id === message.msg_id)
+      if (exists) {
+        return state
+      }
+      return {
+        messages: [...state.messages, message],
+      }
+    })
   },
 
   addRoom: (room) => {
@@ -52,21 +59,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
     syncManager.start((data) => {
       const state = get()
 
-      // Add new messages
-      data.messages.forEach((msg) => state.addMessage(msg))
-
-      // Update presence
-      if (data.presence.length > 0) {
-        state.updatePresence(data.presence)
+      // Add new direct messages
+      if (data.direct_messages) {
+        data.direct_messages.forEach((msg) => state.addMessage(msg))
       }
 
-      // Update rooms
-      data.rooms.forEach((room) => {
-        const exists = state.rooms.find((r) => r.room_id === room.room_id)
-        if (!exists) {
-          state.addRoom(room)
-        }
-      })
+      // Update presence
+      if (data.presence_updates && data.presence_updates.length > 0) {
+        state.updatePresence(data.presence_updates)
+      }
+
+      // Handle room events if needed
+      // TODO: Process room_events when room functionality is implemented
     })
   },
 

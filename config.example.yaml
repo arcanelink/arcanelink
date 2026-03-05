@@ -5,6 +5,7 @@ server:
   host: "0.0.0.0"
   port: 8080
   grpc_port: 50051
+  domain: "localhost"  # Default domain for user IDs
 
 database:
   host: "localhost"
