@@ -127,6 +127,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           creator_id: '',
           members: [],
           created_at: '',
+          member_count: r.member_count,
         }))
         set({ rooms })
       }

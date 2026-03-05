@@ -91,7 +91,9 @@ export function Sidebar({ onCreateRoom, onLogout }: SidebarProps) {
               <div className="chat-avatar">#</div>
               <div className="chat-info">
                 <div className="chat-name">{room.name}</div>
-                <div className="chat-meta">{room.members.length} members</div>
+                <div className="chat-meta">
+                  {room.member_count !== undefined ? room.member_count : room.members.length} members
+                </div>
               </div>
             </div>
           ))}
