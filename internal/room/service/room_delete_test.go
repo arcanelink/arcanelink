@@ -5,7 +5,6 @@ import (
 
 	"github.com/arcane/arcanelink/internal/room/repository"
 	"github.com/arcane/arcanelink/pkg/database"
-	"github.com/arcane/arcanelink/pkg/models"
 )
 
 func TestDeleteRoom(t *testing.T) {

@@ -188,6 +188,31 @@ Transport Layer (HTTP/1.1 or HTTP/2)
 
 ## API Examples
 
+### Authentication
+
+#### Register
+```http
+POST /_api/v1/auth/register
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "secret123",
+  "domain": "example.com"
+}
+```
+
+#### Login
+```http
+POST /_api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "secret123"
+}
+```
+
 ### Client Sync (Long Polling)
 
 ```http
@@ -195,7 +220,15 @@ GET /_api/v1/sync?since=token&timeout=30000
 Authorization: Bearer <access_token>
 ```
 
-### Send Direct Message
+Response includes:
+- `direct_messages`: New direct messages
+- `room_events`: New room events (messages, member changes, etc.)
+- `presence_updates`: User status changes
+- `next_token`: Token for next sync
+
+### Direct Messages
+
+#### Send Direct Message
 
 ```http
 POST /_api/v1/send_direct
@@ -210,7 +243,28 @@ Authorization: Bearer <access_token>
 }
 ```
 
-### Send Room Message
+#### Get Direct Message History
+
+```http
+GET /_api/v1/direct_history?peer=@bob:example.com&limit=50
+Authorization: Bearer <access_token>
+```
+
+### Room Operations
+
+#### Create Room
+
+```http
+POST /_api/v1/rooms/create
+Authorization: Bearer <access_token>
+
+{
+  "name": "My Room",
+  "invite": ["@bob:example.com", "@charlie:example.com"]
+}
+```
+
+#### Send Room Message
 
 ```http
 POST /_api/v1/send_room
@@ -222,6 +276,53 @@ Authorization: Bearer <access_token>
     "msgtype": "m.text",
     "body": "Hello everyone"
   }
+}
+```
+
+#### Get User's Rooms
+
+```http
+GET /_api/v1/rooms
+Authorization: Bearer <access_token>
+```
+
+#### Get Room Members
+
+```http
+GET /_api/v1/rooms/members?room_id=!abc123:example.com
+Authorization: Bearer <access_token>
+```
+
+#### Join Room
+
+```http
+POST /_api/v1/rooms/join
+Authorization: Bearer <access_token>
+
+{
+  "room_id": "!abc123:example.com"
+}
+```
+
+#### Leave Room
+
+```http
+POST /_api/v1/rooms/leave
+Authorization: Bearer <access_token>
+
+{
+  "room_id": "!abc123:example.com"
+}
+```
+
+#### Delete Room (Creator Only)
+
+```http
+POST /_api/v1/rooms/delete
+Authorization: Bearer <access_token>
+
+{
+  "room_id": "!abc123:example.com"
 }
 ```
 
@@ -238,17 +339,60 @@ Core features that must be implemented:
 
 ### Complete Implementation
 
-Recommended full features:
+All features have been implemented:
 
-1. Room creation and management
-2. Member invitation and permissions
-3. Presence management
-4. Message history query
-5. Multimedia message support
+1. ✅ User registration and authentication (JWT-based)
+2. ✅ HTTP long polling sync with real-time updates
+3. ✅ Direct message send/receive with history
+4. ✅ Room creation and management
+5. ✅ Room messaging with real-time sync
+6. ✅ Member invitation and management
+7. ✅ Room member list display
+8. ✅ Room deletion (creator only)
+9. ✅ Message history loading on login
+10. ✅ Presence management (basic)
+11. ✅ Federation service (basic structure)
 
-## Recommended Tech Stack
+### Web Client Features
 
-### Server-side
+The included web client provides:
+
+- User registration and login
+- Direct messaging with conversation history
+- Room creation with member invitations
+- Room messaging with real-time updates
+- Room member list viewing
+- Room deletion (for creators)
+- Automatic message history loading
+- Optimistic UI updates
+- Responsive design
+
+## Tech Stack
+
+### Current Implementation
+
+**Backend:**
+- **Language**: Go 1.24
+- **Database**: PostgreSQL 15
+- **Cache**: Redis 7
+- **Communication**: gRPC (internal), HTTP/REST (client-facing)
+- **Deployment**: Docker Compose
+
+**Frontend:**
+- **Framework**: React 18 + TypeScript
+- **Build Tool**: Vite
+- **State Management**: Zustand
+- **Routing**: React Router
+- **Styling**: CSS Modules
+
+**Architecture:**
+- Microservices architecture with 6 services
+- API Gateway pattern for client requests
+- Long polling for real-time updates
+- PostgreSQL for persistent storage
+- Redis for caching and pub/sub
+
+### Recommended Alternatives
 
 - **Language**: Go, Rust, Node.js, Python
 - **Database**: PostgreSQL, MySQL, MongoDB
@@ -278,12 +422,49 @@ Recommended full features:
 ## Roadmap
 
 - [x] Protocol specification design
-- [ ] Reference implementation
-  - [ ] Server-side
-  - [ ] Client SDK
+- [x] Reference implementation
+  - [x] Server-side (Go microservices)
+  - [x] Web client (React + TypeScript)
+- [x] Core features
+  - [x] User registration and authentication
+  - [x] Direct messaging with history
+  - [x] Room creation and management
+  - [x] Room messaging with real-time sync
+  - [x] Room member management
+  - [x] Room deletion (creator only)
+  - [x] Long polling sync for real-time updates
+  - [x] Message history on login
 - [ ] Testing tools
 - [ ] Performance benchmarks
 - [ ] Production deployment guide
+
+## Recent Updates
+
+### 2026-03-05
+
+**Room Features:**
+- ✅ Room message sending and receiving
+- ✅ Real-time message sync for all room members
+- ✅ Room member list display with avatars
+- ✅ Room deletion functionality (creator only)
+- ✅ Correct member count display
+
+**Message Features:**
+- ✅ Direct message history loading on login
+- ✅ Room message history loading on login
+- ✅ Optimistic UI updates for sent messages
+- ✅ Room events processing in sync
+
+**API Enhancements:**
+- ✅ `/rooms/delete` - Delete room endpoint
+- ✅ `/rooms/members` - Get room members endpoint
+- ✅ `/send_room` - Send room message endpoint
+- ✅ Enhanced sync to include room events
+
+**Bug Fixes:**
+- ✅ Fixed member count calculation (was counting events instead of unique members)
+- ✅ Fixed room message sync for all members
+- ✅ Fixed registration error handling
 
 ## Contributing
 
@@ -299,6 +480,6 @@ For project discussions and issue reports, please use GitHub Issues.
 
 ---
 
-**Version**: 1.0
-**Status**: Draft
-**Last Updated**: 2026-03-02
+**Version**: 1.0.0
+**Status**: Beta - Feature Complete
+**Last Updated**: 2026-03-05
