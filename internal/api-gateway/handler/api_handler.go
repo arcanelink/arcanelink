@@ -525,6 +525,58 @@ func (h *APIHandler) GetRoomMembers(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{"members": members})
 }
 
+func (h *APIHandler) InviteUser(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
+	var req struct {
+		RoomID string `json:"room_id"`
+		UserID string `json:"user_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+		return
+	}
+
+	_, err := h.roomClient.InviteUser(context.Background(), &roompb.InviteUserRequest{
+		RoomId:  req.RoomID,
+		Inviter: userID,
+		Invitee: req.UserID,
+	})
+	if err != nil {
+		logger.Error("Failed to invite user", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to invite user")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func (h *APIHandler) GetRoomState(w http.ResponseWriter, r *http.Request) {
+	roomID := r.URL.Query().Get("room_id")
+	if roomID == "" {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Missing room_id parameter")
+		return
+	}
+
+	resp, err := h.roomClient.GetRoomState(context.Background(), &roompb.GetRoomStateRequest{
+		RoomId: roomID,
+	})
+	if err != nil {
+		logger.Error("Failed to get room state", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to get room state")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"room_id":      resp.RoomId,
+		"name":         resp.Name,
+		"topic":        resp.Topic,
+		"creator":      resp.Creator,
+		"created_at":   resp.CreatedAt,
+		"member_count": resp.MemberCount,
+	})
+}
+
 func (h *APIHandler) DeleteRoom(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 

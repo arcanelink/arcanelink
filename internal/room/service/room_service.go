@@ -142,6 +142,15 @@ func (s *RoomService) LeaveRoom(roomID, userID string) error {
 		return fmt.Errorf("user is not a member of this room")
 	}
 
+	// Check if user is the creator
+	room, err := s.repo.GetRoom(roomID)
+	if err != nil {
+		return fmt.Errorf("failed to get room: %w", err)
+	}
+	if room.Creator == userID {
+		return fmt.Errorf("room creator cannot leave the room, please delete the room instead")
+	}
+
 	// Remove member
 	if err := s.repo.RemoveMember(roomID, userID); err != nil {
 		return err
@@ -177,6 +186,24 @@ func (s *RoomService) InviteUser(roomID, inviter, invitee string) error {
 	}
 	if !isMember {
 		return fmt.Errorf("inviter is not a member of this room")
+	}
+
+	// Check if invitee user exists
+	exists, err := s.repo.UserExists(invitee)
+	if err != nil {
+		return fmt.Errorf("failed to check user existence: %w", err)
+	}
+	if !exists {
+		return fmt.Errorf("user %s does not exist", invitee)
+	}
+
+	// Check if invitee is already a member
+	isAlreadyMember, err := s.repo.IsMember(roomID, invitee)
+	if err != nil {
+		return fmt.Errorf("failed to check membership: %w", err)
+	}
+	if isAlreadyMember {
+		return fmt.Errorf("user is already a member of this room")
 	}
 
 	// Create invite event
@@ -354,6 +381,27 @@ func (s *RoomService) DeleteRoom(roomID, userID string) error {
 	// Only the creator can delete the room
 	if room.Creator != userID {
 		return fmt.Errorf("only the room creator can delete the room")
+	}
+
+	// Get all members before deletion
+	members, err := s.repo.GetMembers(roomID)
+	if err != nil {
+		logger.Error("Failed to get members before deletion", zap.Error(err))
+	}
+
+	// Remove all members first
+	if members != nil {
+		for _, member := range members {
+			if err := s.repo.RemoveMember(roomID, member.UserID); err != nil {
+				logger.Error("Failed to remove member during deletion",
+					zap.String("room_id", roomID),
+					zap.String("user_id", member.UserID),
+					zap.Error(err))
+			}
+		}
+		logger.Info("Removed all members before room deletion",
+			zap.String("room_id", roomID),
+			zap.Int("member_count", len(members)))
 	}
 
 	// Delete the room

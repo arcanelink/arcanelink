@@ -127,8 +127,16 @@ class ApiClient {
   }
 
   async leaveRoom(roomId: string): Promise<void> {
-    await this.request(`/rooms/${roomId}/leave`, {
+    await this.request('/rooms/leave', {
       method: 'POST',
+      body: JSON.stringify({ room_id: roomId }),
+    })
+  }
+
+  async inviteUser(roomId: string, userId: string): Promise<void> {
+    await this.request('/rooms/invite', {
+      method: 'POST',
+      body: JSON.stringify({ room_id: roomId, user_id: userId }),
     })
   }
 
@@ -145,6 +153,17 @@ class ApiClient {
 
   async getRoomMembers(roomId: string): Promise<{ members: Array<{ user_id: string; joined_at: number }> }> {
     return this.request(`/rooms/members?room_id=${encodeURIComponent(roomId)}`)
+  }
+
+  async getRoomState(roomId: string): Promise<{
+    room_id: string
+    name: string
+    topic: string
+    creator: string
+    created_at: number
+    member_count: number
+  }> {
+    return this.request(`/rooms/state?room_id=${encodeURIComponent(roomId)}`)
   }
 
   // Presence APIs

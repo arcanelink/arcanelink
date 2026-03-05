@@ -38,6 +38,7 @@ export interface Room {
   members: RoomMember[]
   created_at: string
   member_count?: number
+  creator?: string
 }
 
 export interface RoomMember {

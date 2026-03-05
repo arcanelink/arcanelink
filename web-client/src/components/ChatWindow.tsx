@@ -3,6 +3,7 @@ import { useChatStore } from '../store/chatStore'
 import { useAuthStore } from '../store/authStore'
 import { apiClient } from '../api/client'
 import { MessageItem } from './MessageItem'
+import { EmojiPicker } from './EmojiPicker'
 import './ChatWindow.css'
 
 export function ChatWindow() {
@@ -10,8 +11,12 @@ export function ChatWindow() {
   const [sending, setSending] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showMembers, setShowMembers] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [inviteUserId, setInviteUserId] = useState('')
   const [members, setMembers] = useState<Array<{ user_id: string; joined_at: number }>>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
+  const [roomCreator, setRoomCreator] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const currentChat = useChatStore((state) => state.currentChat)
@@ -37,6 +42,26 @@ export function ChatWindow() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [filteredMessages])
+
+  useEffect(() => {
+    // Load room creator when room changes
+    if (currentChat?.type === 'room') {
+      loadRoomCreator()
+    } else {
+      setRoomCreator(null)
+    }
+  }, [currentChat])
+
+  const loadRoomCreator = async () => {
+    if (!currentChat || currentChat.type !== 'room') return
+
+    try {
+      const state = await apiClient.getRoomState(currentChat.id)
+      setRoomCreator(state.creator)
+    } catch (error) {
+      console.error('Failed to load room state:', error)
+    }
+  }
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,6 +140,49 @@ export function ChatWindow() {
     }
   }
 
+  const handleInviteUser = async () => {
+    if (!currentChat || currentChat.type !== 'room' || !inviteUserId.trim()) return
+
+    try {
+      await apiClient.inviteUser(currentChat.id, inviteUserId)
+      alert('User invited successfully')
+      setInviteUserId('')
+      setShowInviteModal(false)
+      // Reload members list
+      await loadRoomMembers()
+    } catch (error: any) {
+      console.error('Failed to invite user:', error)
+      const errorMessage = error?.message || 'Failed to invite user'
+      if (errorMessage.includes('does not exist')) {
+        alert('User does not exist. Please check the user ID.')
+      } else if (errorMessage.includes('already a member')) {
+        alert('User is already a member of this room.')
+      } else {
+        alert('Failed to invite user: ' + errorMessage)
+      }
+    }
+  }
+
+  const handleLeaveRoom = async () => {
+    if (!currentChat || currentChat.type !== 'room') return
+
+    if (!confirm('Are you sure you want to leave this room?')) return
+
+    try {
+      await apiClient.leaveRoom(currentChat.id)
+      removeRoom(currentChat.id)
+      setCurrentChat(null, null)
+      alert('Left room successfully')
+    } catch (error) {
+      console.error('Failed to leave room:', error)
+      alert('Failed to leave room')
+    }
+  }
+
+  const handleEmojiSelect = (emoji: string) => {
+    setMessageText((prev) => prev + emoji)
+  }
+
   const currentRoom = currentChat?.type === 'room'
     ? rooms.find(r => r.room_id === currentChat.id)
     : null
@@ -145,15 +213,61 @@ export function ChatWindow() {
               👥 {loadingMembers ? 'Loading...' : 'Members'}
             </button>
             <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="btn-delete"
-              title="Delete room"
+              onClick={() => setShowInviteModal(true)}
+              className="btn-invite"
+              title="Invite user"
             >
-              🗑️
+              ➕ Invite
             </button>
+            {roomCreator !== user?.user_id && (
+              <button
+                onClick={handleLeaveRoom}
+                className="btn-leave"
+                title="Leave room"
+              >
+                🚪 Leave
+              </button>
+            )}
+            {roomCreator === user?.user_id && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="btn-delete"
+                title="Delete room (removes all members)"
+              >
+                🗑️ Delete
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {showInviteModal && (
+        <div className="modal-overlay" onClick={() => setShowInviteModal(false)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Invite User to Room</h3>
+              <button onClick={() => setShowInviteModal(false)} className="btn-close">×</button>
+            </div>
+            <div className="modal-body">
+              <input
+                type="text"
+                value={inviteUserId}
+                onChange={(e) => setInviteUserId(e.target.value)}
+                placeholder="Enter user ID (e.g., @user:domain)"
+                className="invite-input"
+              />
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setShowInviteModal(false)} className="btn-cancel">
+                Cancel
+              </button>
+              <button onClick={handleInviteUser} className="btn-confirm" disabled={!inviteUserId.trim()}>
+                Invite
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showMembers && (
         <div className="members-overlay" onClick={() => setShowMembers(false)}>
@@ -183,7 +297,7 @@ export function ChatWindow() {
         <div className="delete-confirm-overlay">
           <div className="delete-confirm-dialog">
             <h3>Delete Room?</h3>
-            <p>Are you sure you want to delete this room? This action cannot be undone.</p>
+            <p>Are you sure you want to delete this room? All members will be removed and this action cannot be undone.</p>
             <div className="delete-confirm-buttons">
               <button onClick={() => setShowDeleteConfirm(false)} className="btn-cancel">
                 Cancel
@@ -204,6 +318,14 @@ export function ChatWindow() {
       </div>
 
       <form onSubmit={handleSend} className="message-input-form">
+        <button
+          type="button"
+          className="emoji-trigger-btn"
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          title="Add emoji"
+        >
+          😀
+        </button>
         <input
           type="text"
           value={messageText}
@@ -215,6 +337,13 @@ export function ChatWindow() {
           Send
         </button>
       </form>
+
+      {showEmojiPicker && (
+        <EmojiPicker
+          onSelect={handleEmojiSelect}
+          onClose={() => setShowEmojiPicker(false)}
+        />
+      )}
     </div>
   )
 }

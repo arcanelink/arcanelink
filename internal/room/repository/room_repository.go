@@ -256,6 +256,17 @@ func (r *RoomRepository) RoomExists(roomID string) (bool, error) {
 	return exists, nil
 }
 
+// UserExists checks if a user exists
+func (r *RoomRepository) UserExists(userID string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM users WHERE user_id = $1)`
+	var exists bool
+	err := r.db.QueryRow(query, userID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check user existence: %w", err)
+	}
+	return exists, nil
+}
+
 // DeleteRoom deletes a room and all associated data
 func (r *RoomRepository) DeleteRoom(roomID string) error {
 	tx, err := r.db.Begin()
