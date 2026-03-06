@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Message } from '../types'
 import { LinkPreview } from './LinkPreview'
 import { SecureImage } from './SecureImage'
@@ -11,6 +12,8 @@ interface MessageItemProps {
 }
 
 export function MessageItem({ message, isOwn }: MessageItemProps) {
+  const [showRawMessage, setShowRawMessage] = useState(false)
+
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp)
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -130,6 +133,17 @@ export function MessageItem({ message, isOwn }: MessageItemProps) {
   const isFileMessage = ['m.file', 'm.image', 'm.audio', 'm.video'].includes(message.content.msgtype)
   const urls = isFileMessage ? [] : extractUrls(message.content.body)
 
+  const toggleRawMessage = () => {
+    setShowRawMessage(!showRawMessage)
+  }
+
+  const copyRawMessage = () => {
+    const rawJson = JSON.stringify(message, null, 2)
+    navigator.clipboard.writeText(rawJson)
+      .then(() => alert('Raw message copied to clipboard!'))
+      .catch(() => alert('Failed to copy'))
+  }
+
   return (
     <div className={`message-item ${isOwn ? 'own' : 'other'}`}>
       <div className="message-bubble">
@@ -148,7 +162,35 @@ export function MessageItem({ message, isOwn }: MessageItemProps) {
             )}
           </>
         )}
-        <div className="message-time">{formatTime(message.timestamp)}</div>
+
+        <div className="message-footer">
+          <div className="message-time">{formatTime(message.timestamp)}</div>
+          <button
+            className="raw-message-toggle"
+            onClick={toggleRawMessage}
+            title="Show raw message"
+          >
+            {showRawMessage ? '📋' : '🔍'}
+          </button>
+        </div>
+
+        {showRawMessage && (
+          <div className="raw-message-container">
+            <div className="raw-message-header">
+              <span>Raw Message</span>
+              <button
+                className="copy-raw-btn"
+                onClick={copyRawMessage}
+                title="Copy to clipboard"
+              >
+                📋 Copy
+              </button>
+            </div>
+            <pre className="raw-message-content">
+              {JSON.stringify(message, null, 2)}
+            </pre>
+          </div>
+        )}
       </div>
     </div>
   )

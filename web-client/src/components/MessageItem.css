@@ -85,6 +85,103 @@
   text-align: right;
 }
 
+.message-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  gap: 8px;
+}
+
+.raw-message-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: all 0.2s;
+}
+
+.raw-message-toggle:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.message-item.other .raw-message-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.raw-message-container {
+  margin-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 12px;
+}
+
+.message-item.other .raw-message-container {
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+.raw-message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.copy-raw-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: inherit;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.copy-raw-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.message-item.other .copy-raw-btn {
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.message-item.other .copy-raw-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.raw-message-content {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.message-item.other .raw-message-content {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+
+.message-item.own .raw-message-content {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 /* File message styles */
 .file-message {
   display: flex;
