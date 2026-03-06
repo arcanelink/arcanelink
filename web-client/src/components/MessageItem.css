@@ -84,3 +84,88 @@
 .message-item.own .message-time {
   text-align: right;
 }
+
+/* File message styles */
+.file-message {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.file-download {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.file-download:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.message-item.other .file-download {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.message-item.other .file-download:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.file-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.file-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.download-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* Image message */
+.image-message .message-image {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+/* Audio message */
+.audio-message .message-audio {
+  width: 100%;
+  max-width: 300px;
+}
+
+/* Video message */
+.video-message .message-video {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+}

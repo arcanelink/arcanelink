@@ -9,6 +9,7 @@ An improved distributed instant messaging protocol based on Matrix, with simplif
 - **HTTP long polling**: Uses standard HTTP, simpler and more compatible
 - **Optional encryption**: E2EE not mandatory, reducing complexity
 - **Server federation**: Decentralized architecture with cross-server communication
+- **File sharing**: Upload and share files in both private and group chats
 
 ## Main Differences from Matrix
 
@@ -346,6 +347,79 @@ Authorization: Bearer <access_token>
 
 Returns webpage metadata (title, description, image) for displaying rich link previews.
 
+### File Operations
+
+#### Upload File
+
+```http
+POST /_api/v1/files
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+
+file: <binary data>
+```
+
+Response:
+```json
+{
+  "file_id": "550e8400-e29b-41d4-a716-446655440000",
+  "filename": "document.pdf",
+  "content_type": "application/pdf",
+  "file_size": 1024000,
+  "url": "/_api/v1/files/550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+#### Download File
+
+```http
+GET /_api/v1/files/{file_id}
+Authorization: Bearer <access_token>
+```
+
+Returns the file binary data with appropriate Content-Type and Content-Disposition headers.
+
+#### Send File in Direct Message
+
+```http
+POST /_api/v1/messages
+Authorization: Bearer <access_token>
+
+{
+  "recipient": "@bob:example.com",
+  "content": {
+    "msgtype": "m.file",
+    "body": "document.pdf",
+    "url": "/_api/v1/files/550e8400-e29b-41d4-a716-446655440000",
+    "info": {
+      "size": 1024000,
+      "mimetype": "application/pdf"
+    }
+  }
+}
+```
+
+#### Send File in Room
+
+```http
+POST /_api/v1/rooms/!abc123:example.com/messages
+Authorization: Bearer <access_token>
+
+{
+  "content": {
+    "msgtype": "m.file",
+    "body": "document.pdf",
+    "url": "/_api/v1/files/550e8400-e29b-41d4-a716-446655440000",
+    "info": {
+      "size": 1024000,
+      "mimetype": "application/pdf"
+    }
+  }
+}
+```
+
+Supported message types: `m.file`, `m.image`, `m.audio`, `m.video`. See [File Upload Documentation](docs/FILE_UPLOAD.md) for more details.
+
 ## Implementation Recommendations
 
 ### Minimal Implementation
@@ -470,6 +544,19 @@ The included web client provides:
 - [ ] Production deployment guide
 
 ## Recent Updates
+
+### 2026-03-06
+
+**File Sharing:**
+- ✅ File upload API with multipart/form-data support
+- ✅ File download API with proper Content-Disposition headers
+- ✅ File metadata storage in PostgreSQL
+- ✅ Organized file storage by date (YYYY/MM/DD structure)
+- ✅ SHA256-based file deduplication
+- ✅ Support for multiple file types (m.file, m.image, m.audio, m.video)
+- ✅ File size limit (50MB)
+- ✅ File sharing in both private and group chats
+- ✅ Docker volume for persistent file storage
 
 ### 2026-03-05
 

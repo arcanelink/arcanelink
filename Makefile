@@ -1,4 +1,4 @@
-.PHONY: help build run stop clean test proto migrate
+.PHONY: help build run stop clean test proto migrate migrate-up migrate-down migrate-status db-shell db-reset test-file-upload file-storage-info file-storage-clean web-client web-client-build web-client-test
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -67,6 +67,28 @@ migrate-up: ## Run database migrations up
 	@docker-compose exec postgres psql -U mbot -d mbot -f /docker-entrypoint-initdb.d/005_create_room_events.up.sql
 	@docker-compose exec postgres psql -U mbot -d mbot -f /docker-entrypoint-initdb.d/006_create_message_queue.up.sql
 	@docker-compose exec postgres psql -U mbot -d mbot -f /docker-entrypoint-initdb.d/007_create_presence.up.sql
+	@docker-compose exec postgres psql -U mbot -d mbot -f /docker-entrypoint-initdb.d/008_create_file_storage.up.sql
+
+migrate-down: ## Run database migrations down
+	@echo "Rolling back migrations..."
+	@docker-compose exec postgres psql -U mbot -d mbot -f /docker-entrypoint-initdb.d/008_create_file_storage.down.sql
+	@docker-compose exec postgres psql -U mbot -d mbot -f /docker-entrypoint-initdb.d/007_create_presence.down.sql
+	@docker-compose exec postgres psql -U mbot -d mbot -f /docker-entrypoint-initdb.d/006_create_message_queue.down.sql
+	@docker-compose exec postgres psql -U mbot -d mbot -f /docker-entrypoint-initdb.d/005_create_room_events.down.sql
+	@docker-compose exec postgres psql -U mbot -d mbot -f /docker-entrypoint-initdb.d/004_create_room_members.down.sql
+	@docker-compose exec postgres psql -U mbot -d mbot -f /docker-entrypoint-initdb.d/003_create_rooms.down.sql
+	@docker-compose exec postgres psql -U mbot -d mbot -f /docker-entrypoint-initdb.d/002_create_direct_messages.down.sql
+	@docker-compose exec postgres psql -U mbot -d mbot -f /docker-entrypoint-initdb.d/001_create_users.down.sql
+
+migrate-status: ## Check migration status
+	@echo "Checking database tables..."
+	@docker-compose exec postgres psql -U mbot -d mbot -c "\dt"
+
+db-shell: ## Open PostgreSQL shell
+	@docker-compose exec postgres psql -U mbot -d mbot
+
+db-reset: migrate-down migrate-up ## Reset database (down then up)
+	@echo "Database reset complete"
 
 ps: ## Show running services
 	@docker-compose ps
@@ -100,3 +122,43 @@ build-local: ## Build binaries locally (requires Go installed)
 	@go build -o bin/federation ./cmd/federation
 	@go build -o bin/presence ./cmd/presence
 	@echo "Binaries built in ./bin/"
+
+test-file-upload: ## Test file upload functionality
+	@echo "Testing file upload..."
+	@chmod +x scripts/test_file_upload.sh
+	@./scripts/test_file_upload.sh
+
+file-storage-info: ## Show file storage information
+	@echo "File storage information:"
+	@echo "Storage path: ./data/files (or FILE_STORAGE_PATH env var)"
+	@echo ""
+	@echo "Files in storage:"
+	@docker-compose exec api-gateway find /data/files -type f 2>/dev/null || echo "No files found or service not running"
+	@echo ""
+	@echo "Database records:"
+	@docker-compose exec postgres psql -U mbot -d mbot -c "SELECT file_id, filename, content_type, file_size, uploader, created_at FROM file_storage ORDER BY created_at DESC LIMIT 10;" 2>/dev/null || echo "Database not accessible"
+
+file-storage-clean: ## Clean up file storage (WARNING: deletes all files)
+	@echo "WARNING: This will delete all uploaded files!"
+	@read -p "Are you sure? [y/N] " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		echo "Cleaning file storage..."; \
+		docker-compose exec api-gateway rm -rf /data/files/* 2>/dev/null || echo "Could not clean files"; \
+		docker-compose exec postgres psql -U mbot -d mbot -c "DELETE FROM file_storage;" 2>/dev/null || echo "Could not clean database"; \
+		echo "File storage cleaned"; \
+	else \
+		echo "Cancelled"; \
+	fi
+
+web-client: ## Start web client development server
+	@echo "Starting web client..."
+	@cd web-client && npm install && npm run dev
+
+web-client-build: ## Build web client for production
+	@echo "Building web client..."
+	@cd web-client && npm install && npm run build
+
+web-client-test: ## Run web client tests
+	@echo "Running web client tests..."
+	@cd web-client && npm test

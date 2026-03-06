@@ -13,7 +13,9 @@ import (
 	"github.com/arcane/arcanelink/internal/api-gateway/middleware"
 	"github.com/arcane/arcanelink/internal/api-gateway/router"
 	"github.com/arcane/arcanelink/pkg/config"
+	"github.com/arcane/arcanelink/pkg/database"
 	"github.com/arcane/arcanelink/pkg/logger"
+	"github.com/arcane/arcanelink/pkg/storage"
 	"go.uber.org/zap"
 )
 
@@ -33,12 +35,37 @@ func main() {
 		cfg.Server.Port = 8080
 	}
 
+	// Initialize database connection
+	db, err := database.NewPostgresDB(&database.Config{
+		Host:     cfg.Database.Host,
+		Port:     cfg.Database.Port,
+		User:     cfg.Database.User,
+		Password: cfg.Database.Password,
+		DBName:   cfg.Database.Name,
+		SSLMode:  cfg.Database.SSLMode,
+	})
+	if err != nil {
+		logger.Fatal("Failed to connect to database", zap.Error(err))
+	}
+	defer db.Close()
+
+	// Initialize file storage
+	storagePath := os.Getenv("FILE_STORAGE_PATH")
+	if storagePath == "" {
+		storagePath = "./data/files"
+	}
+	fileStorage, err := storage.NewFileStorage(db.DB, storagePath)
+	if err != nil {
+		logger.Fatal("Failed to initialize file storage", zap.Error(err))
+	}
+
 	// Initialize API handler
 	apiHandler, err := handler.NewAPIHandler(
 		cfg.Services.Auth,
 		cfg.Services.Message,
 		cfg.Services.Room,
 		cfg.Server.Domain,
+		fileStorage,
 	)
 	if err != nil {
 		logger.Fatal("Failed to initialize API handler", zap.Error(err))

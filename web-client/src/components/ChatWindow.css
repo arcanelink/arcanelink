@@ -367,6 +367,35 @@
   align-items: center;
 }
 
+.file-upload-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.file-upload-btn:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+  transform: scale(1.1);
+}
+
+.file-upload-btn:active {
+  transform: scale(0.95);
+}
+
+.file-upload-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .emoji-trigger-btn {
   background: none;
   border: 1px solid var(--border-color);

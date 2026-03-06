@@ -43,6 +43,11 @@ func SetupRouter(apiHandler *handler.APIHandler, authMiddleware *middleware.Auth
 	// Sync route
 	api.HandleFunc("/sync", apiHandler.Sync).Methods("GET")
 
+	// File routes
+	api.HandleFunc("/files", apiHandler.UploadFile).Methods("POST")                      // Upload file
+	api.HandleFunc("/files/{file_id}", apiHandler.DownloadFile).Methods("GET")           // Download file
+	api.HandleFunc("/files/{file_id}/info", apiHandler.GetFileInfo).Methods("GET")       // Get file info
+
 	// Link preview
 	api.HandleFunc("/link_preview", apiHandler.GetLinkPreview).Methods("GET")
 

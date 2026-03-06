@@ -158,11 +158,20 @@ services:
       - PRESENCE_SERVICE_ADDR=presence:50054
       - SERVER_DOMAIN=localhost
       - HTTP_PORT=8080
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mbot
+      - DB_USER=mbot
+      - DB_PASSWORD=mbot_password
+      - FILE_STORAGE_PATH=/data/files
+    volumes:
+      - file_storage:/data/files
     depends_on:
       - auth
       - message
       - room
       - presence
+      - postgres
     networks:
       - mbot-network
     restart: unless-stopped
@@ -170,6 +179,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  file_storage:
 
 networks:
   mbot-network:

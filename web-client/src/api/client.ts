@@ -190,6 +190,50 @@ class ApiClient {
     return this.request(`/link_preview?url=${encodeURIComponent(url)}`)
   }
 
+  // File APIs
+  async uploadFile(file: File): Promise<{
+    file_id: string
+    filename: string
+    content_type: string
+    file_size: number
+    url: string
+  }> {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const headers: Record<string, string> = {}
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`
+    }
+
+    const response = await fetch(`${API_BASE}/files`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+      throw new Error(error.error || `HTTP ${response.status}`)
+    }
+
+    return response.json()
+  }
+
+  async getFileInfo(fileId: string): Promise<{
+    file_id: string
+    filename: string
+    content_type: string
+    file_size: number
+    url: string
+  }> {
+    return this.request(`/files/${fileId}/info`)
+  }
+
+  getFileDownloadUrl(fileId: string): string {
+    return `${API_BASE}/files/${fileId}`
+  }
+
   // Presence APIs
   async setPresence(status: 'online' | 'offline' | 'away', statusMsg?: string): Promise<void> {
     await this.request('/presence', {

@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/arcane/arcanelink/internal/api-gateway/middleware"
 	"github.com/arcane/arcanelink/pkg/logger"
 	"github.com/arcane/arcanelink/pkg/models"
+	"github.com/arcane/arcanelink/pkg/storage"
 	authpb "github.com/arcane/arcanelink/pkg/proto/auth"
 	messagepb "github.com/arcane/arcanelink/pkg/proto/message"
 	roompb "github.com/arcane/arcanelink/pkg/proto/room"
@@ -23,10 +26,11 @@ type APIHandler struct {
 	authClient    authpb.AuthServiceClient
 	messageClient messagepb.MessageServiceClient
 	roomClient    roompb.RoomServiceClient
+	fileStorage   *storage.FileStorage
 	serverDomain  string
 }
 
-func NewAPIHandler(authAddr, messageAddr, roomAddr, serverDomain string) (*APIHandler, error) {
+func NewAPIHandler(authAddr, messageAddr, roomAddr, serverDomain string, fileStorage *storage.FileStorage) (*APIHandler, error) {
 	authConn, err := grpc.Dial(authAddr, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
@@ -46,6 +50,7 @@ func NewAPIHandler(authAddr, messageAddr, roomAddr, serverDomain string) (*APIHa
 		authClient:    authpb.NewAuthServiceClient(authConn),
 		messageClient: messagepb.NewMessageServiceClient(messageConn),
 		roomClient:    roompb.NewRoomServiceClient(roomConn),
+		fileStorage:   fileStorage,
 		serverDomain:  serverDomain,
 	}, nil
 }
@@ -739,6 +744,112 @@ func (h *APIHandler) DeleteRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+// File handlers
+
+func (h *APIHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
+	// Parse multipart form (max 50MB)
+	if err := r.ParseMultipartForm(50 << 20); err != nil {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Failed to parse form data")
+		return
+	}
+
+	// Get file from form
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "No file provided")
+		return
+	}
+	defer file.Close()
+
+	// Upload file
+	metadata, err := h.fileStorage.UploadFile(userID, file, header)
+	if err != nil {
+		logger.Error("Failed to upload file", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to upload file")
+		return
+	}
+
+	// Generate download URL
+	downloadURL := fmt.Sprintf("/_api/v1/files/%s", metadata.FileID)
+
+	respondJSON(w, http.StatusOK, models.UploadFileResponse{
+		FileID:      metadata.FileID,
+		Filename:    metadata.Filename,
+		ContentType: metadata.ContentType,
+		FileSize:    metadata.FileSize,
+		URL:         downloadURL,
+	})
+}
+
+func (h *APIHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
+	// Extract file_id from URL path
+	vars := mux.Vars(r)
+	fileID := vars["file_id"]
+
+	if fileID == "" {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Missing file_id in path")
+		return
+	}
+
+	// Get file metadata
+	metadata, err := h.fileStorage.GetFileMetadata(fileID)
+	if err != nil {
+		logger.Error("Failed to get file metadata", zap.Error(err))
+		respondError(w, http.StatusNotFound, "NOT_FOUND", "File not found")
+		return
+	}
+
+	// Open file
+	file, err := os.Open(metadata.StoragePath)
+	if err != nil {
+		logger.Error("Failed to open file", zap.Error(err))
+		respondError(w, http.StatusInternalServerError, "SERVER_ERROR", "Failed to read file")
+		return
+	}
+	defer file.Close()
+
+	// Set headers
+	w.Header().Set("Content-Type", metadata.ContentType)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", metadata.Filename))
+	w.Header().Set("Content-Length", strconv.FormatInt(metadata.FileSize, 10))
+
+	// Stream file to response
+	if _, err := io.Copy(w, file); err != nil {
+		logger.Error("Failed to stream file", zap.Error(err))
+	}
+}
+
+func (h *APIHandler) GetFileInfo(w http.ResponseWriter, r *http.Request) {
+	// Extract file_id from URL path
+	vars := mux.Vars(r)
+	fileID := vars["file_id"]
+
+	if fileID == "" {
+		respondError(w, http.StatusBadRequest, "BAD_REQUEST", "Missing file_id in path")
+		return
+	}
+
+	// Get file metadata
+	metadata, err := h.fileStorage.GetFileMetadata(fileID)
+	if err != nil {
+		logger.Error("Failed to get file metadata", zap.Error(err))
+		respondError(w, http.StatusNotFound, "NOT_FOUND", "File not found")
+		return
+	}
+
+	downloadURL := fmt.Sprintf("/_api/v1/files/%s", metadata.FileID)
+
+	respondJSON(w, http.StatusOK, models.UploadFileResponse{
+		FileID:      metadata.FileID,
+		Filename:    metadata.Filename,
+		ContentType: metadata.ContentType,
+		FileSize:    metadata.FileSize,
+		URL:         downloadURL,
+	})
 }
 
 // Helper functions

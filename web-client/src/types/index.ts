@@ -16,9 +16,14 @@ export interface Message {
 }
 
 export interface MessageContent {
-  msgtype: 'm.text' | 'm.image' | 'm.file'
+  msgtype: 'm.text' | 'm.image' | 'm.file' | 'm.audio' | 'm.video'
   body: string
   url?: string
+  info?: {
+    size?: number
+    mimetype?: string
+    [key: string]: any
+  }
 }
 
 export interface RoomEvent {

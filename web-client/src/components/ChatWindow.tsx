@@ -17,7 +17,9 @@ export function ChatWindow() {
   const [members, setMembers] = useState<Array<{ user_id: string; joined_at: number }>>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [roomCreator, setRoomCreator] = useState<string | null>(null)
+  const [uploadingFile, setUploadingFile] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const currentChat = useChatStore((state) => state.currentChat)
   const messages = useChatStore((state) => state.messages)
@@ -185,6 +187,114 @@ export function ChatWindow() {
     setMessageText((prev) => prev + emoji)
   }
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !currentChat) return
+
+    // Check file size (50MB limit)
+    const maxSize = 50 * 1024 * 1024
+    if (file.size > maxSize) {
+      alert('File size exceeds 50MB limit')
+      return
+    }
+
+    setUploadingFile(true)
+    try {
+      // Upload file
+      const fileInfo = await apiClient.uploadFile(file)
+
+      // Determine message type based on file type
+      let msgtype = 'm.file'
+      if (file.type.startsWith('image/')) {
+        msgtype = 'm.image'
+      } else if (file.type.startsWith('audio/')) {
+        msgtype = 'm.audio'
+      } else if (file.type.startsWith('video/')) {
+        msgtype = 'm.video'
+      }
+
+      // Send file message
+      if (currentChat.type === 'direct') {
+        const response = await apiClient.sendDirectMessage({
+          recipient: currentChat.id,
+          content: {
+            msgtype: msgtype as any,
+            body: file.name,
+            url: fileInfo.url,
+            info: {
+              size: file.size,
+              mimetype: file.type,
+            },
+          },
+        })
+
+        // Add to local state
+        const sentMessage = {
+          msg_id: response.msg_id,
+          sender: user?.user_id || '',
+          recipient: currentChat.id,
+          content: {
+            msgtype: msgtype as any,
+            body: file.name,
+            url: fileInfo.url,
+            info: {
+              size: file.size,
+              mimetype: file.type,
+            },
+          },
+          timestamp: response.timestamp,
+        }
+        useChatStore.getState().addMessage(sentMessage)
+      } else {
+        const response = await apiClient.sendRoomMessage({
+          room_id: currentChat.id,
+          content: {
+            msgtype: msgtype as any,
+            body: file.name,
+            url: fileInfo.url,
+            info: {
+              size: file.size,
+              mimetype: file.type,
+            },
+          },
+        })
+
+        // Add to local state
+        const sentMessage = {
+          msg_id: response.event_id,
+          sender: user?.user_id || '',
+          room_id: currentChat.id,
+          content: {
+            msgtype: msgtype as any,
+            body: file.name,
+            url: fileInfo.url,
+            info: {
+              size: file.size,
+              mimetype: file.type,
+            },
+          },
+          timestamp: response.timestamp,
+        }
+        useChatStore.getState().addMessage(sentMessage)
+      }
+
+      alert('File sent successfully!')
+    } catch (error) {
+      console.error('Failed to upload file:', error)
+      alert('Failed to upload file: ' + (error as Error).message)
+    } finally {
+      setUploadingFile(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleFileButtonClick = () => {
+    fileInputRef.current?.click()
+  }
+
   const currentRoom = currentChat?.type === 'room'
     ? rooms.find(r => r.room_id === currentChat.id)
     : null
@@ -320,6 +430,22 @@ export function ChatWindow() {
       </div>
 
       <form onSubmit={handleSend} className="message-input-form">
+        <input
+          ref={fileInputRef}
+          type="file"
+          onChange={handleFileSelect}
+          style={{ display: 'none' }}
+          disabled={uploadingFile}
+        />
+        <button
+          type="button"
+          className="file-upload-btn"
+          onClick={handleFileButtonClick}
+          disabled={uploadingFile}
+          title="Upload file"
+        >
+          {uploadingFile ? '⏳' : '📎'}
+        </button>
         <button
           type="button"
           className="emoji-trigger-btn"
@@ -333,9 +459,9 @@ export function ChatWindow() {
           value={messageText}
           onChange={(e) => setMessageText(e.target.value)}
           placeholder="Type a message..."
-          disabled={sending}
+          disabled={sending || uploadingFile}
         />
-        <button type="submit" disabled={sending || !messageText.trim()}>
+        <button type="submit" disabled={sending || !messageText.trim() || uploadingFile}>
           Send
         </button>
       </form>
