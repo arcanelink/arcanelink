@@ -34,8 +34,8 @@ export function MessageItem({ message, isOwn }: MessageItemProps) {
   }
 
   const renderMessageContent = (text: string, format?: string) => {
-    // If format is specified as markdown or html, use MarkdownRenderer
-    if (format === 'org.matrix.custom.html' || format === 'markdown') {
+    // If format is specified as markdown, use MarkdownRenderer
+    if (format === 'markdown') {
       return <MarkdownRenderer content={text} />
     }
 

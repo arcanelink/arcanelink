@@ -490,7 +490,13 @@ export function ChatWindow() {
             type="text"
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}
-            placeholder={attachedFile ? "Add a caption (optional)..." : "Type a message..."}
+            placeholder={
+              attachedFile
+                ? "Add a caption (optional)..."
+                : useMarkdown
+                ? "Type Markdown..."
+                : "Type a message..."
+            }
             disabled={sending || uploadingFile}
           />
           <button type="submit" disabled={sending || (!messageText.trim() && !attachedFile) || uploadingFile}>
