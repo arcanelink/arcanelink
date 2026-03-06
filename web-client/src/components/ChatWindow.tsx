@@ -18,6 +18,16 @@ export function ChatWindow() {
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [roomCreator, setRoomCreator] = useState<string | null>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
+  const [attachedFile, setAttachedFile] = useState<{
+    file: File
+    fileInfo: {
+      file_id: string
+      filename: string
+      content_type: string
+      file_size: number
+      url: string
+    }
+  } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -69,14 +79,47 @@ export function ChatWindow() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!messageText.trim() || !currentChat || sending) return
+    if ((!messageText.trim() && !attachedFile) || !currentChat || sending) return
 
     setSending(true)
     try {
+      // Determine message type and content
+      let msgtype = 'm.text'
+      let body = messageText
+      let url = undefined
+      let info = undefined
+
+      if (attachedFile) {
+        // Determine message type based on file type
+        if (attachedFile.file.type.startsWith('image/')) {
+          msgtype = 'm.image'
+        } else if (attachedFile.file.type.startsWith('audio/')) {
+          msgtype = 'm.audio'
+        } else if (attachedFile.file.type.startsWith('video/')) {
+          msgtype = 'm.video'
+        } else {
+          msgtype = 'm.file'
+        }
+
+        // Use user input as body if provided, otherwise use filename
+        body = messageText.trim() || attachedFile.fileInfo.filename
+        url = attachedFile.fileInfo.url
+        info = {
+          size: attachedFile.fileInfo.file_size,
+          mimetype: attachedFile.fileInfo.content_type,
+          filename: attachedFile.fileInfo.filename, // Store original filename
+        }
+      }
+
       if (currentChat.type === 'direct') {
         const response = await apiClient.sendDirectMessage({
           recipient: currentChat.id,
-          content: { msgtype: 'm.text', body: messageText },
+          content: {
+            msgtype: msgtype as any,
+            body,
+            url,
+            info,
+          },
         })
 
         // Optimistically add the sent message to local state
@@ -84,14 +127,24 @@ export function ChatWindow() {
           msg_id: response.msg_id,
           sender: user?.user_id || '',
           recipient: currentChat.id,
-          content: { msgtype: 'm.text' as const, body: messageText },
+          content: {
+            msgtype: msgtype as any,
+            body,
+            url,
+            info,
+          },
           timestamp: response.timestamp,
         }
         useChatStore.getState().addMessage(sentMessage)
       } else {
         const response = await apiClient.sendRoomMessage({
           room_id: currentChat.id,
-          content: { msgtype: 'm.text', body: messageText },
+          content: {
+            msgtype: msgtype as any,
+            body,
+            url,
+            info,
+          },
         })
 
         // Optimistically add the sent message to local state
@@ -99,12 +152,18 @@ export function ChatWindow() {
           msg_id: response.event_id,
           sender: user?.user_id || '',
           room_id: currentChat.id,
-          content: { msgtype: 'm.text' as const, body: messageText },
+          content: {
+            msgtype: msgtype as any,
+            body,
+            url,
+            info,
+          },
           timestamp: response.timestamp,
         }
         useChatStore.getState().addMessage(sentMessage)
       }
       setMessageText('')
+      setAttachedFile(null)
     } catch (error) {
       console.error('Failed to send message:', error)
       alert('Failed to send message')
@@ -203,82 +262,14 @@ export function ChatWindow() {
       // Upload file
       const fileInfo = await apiClient.uploadFile(file)
 
-      // Determine message type based on file type
-      let msgtype = 'm.file'
-      if (file.type.startsWith('image/')) {
-        msgtype = 'm.image'
-      } else if (file.type.startsWith('audio/')) {
-        msgtype = 'm.audio'
-      } else if (file.type.startsWith('video/')) {
-        msgtype = 'm.video'
-      }
+      // Store file info for later sending
+      setAttachedFile({
+        file,
+        fileInfo,
+      })
 
-      // Send file message
-      if (currentChat.type === 'direct') {
-        const response = await apiClient.sendDirectMessage({
-          recipient: currentChat.id,
-          content: {
-            msgtype: msgtype as any,
-            body: file.name,
-            url: fileInfo.url,
-            info: {
-              size: file.size,
-              mimetype: file.type,
-            },
-          },
-        })
-
-        // Add to local state
-        const sentMessage = {
-          msg_id: response.msg_id,
-          sender: user?.user_id || '',
-          recipient: currentChat.id,
-          content: {
-            msgtype: msgtype as any,
-            body: file.name,
-            url: fileInfo.url,
-            info: {
-              size: file.size,
-              mimetype: file.type,
-            },
-          },
-          timestamp: response.timestamp,
-        }
-        useChatStore.getState().addMessage(sentMessage)
-      } else {
-        const response = await apiClient.sendRoomMessage({
-          room_id: currentChat.id,
-          content: {
-            msgtype: msgtype as any,
-            body: file.name,
-            url: fileInfo.url,
-            info: {
-              size: file.size,
-              mimetype: file.type,
-            },
-          },
-        })
-
-        // Add to local state
-        const sentMessage = {
-          msg_id: response.event_id,
-          sender: user?.user_id || '',
-          room_id: currentChat.id,
-          content: {
-            msgtype: msgtype as any,
-            body: file.name,
-            url: fileInfo.url,
-            info: {
-              size: file.size,
-              mimetype: file.type,
-            },
-          },
-          timestamp: response.timestamp,
-        }
-        useChatStore.getState().addMessage(sentMessage)
-      }
-
-      alert('File sent successfully!')
+      // Focus on input for user to add caption
+      document.querySelector<HTMLInputElement>('.message-input-form input')?.focus()
     } catch (error) {
       console.error('Failed to upload file:', error)
       alert('Failed to upload file: ' + (error as Error).message)
@@ -293,6 +284,10 @@ export function ChatWindow() {
 
   const handleFileButtonClick = () => {
     fileInputRef.current?.click()
+  }
+
+  const handleRemoveAttachment = () => {
+    setAttachedFile(null)
   }
 
   const currentRoom = currentChat?.type === 'room'
@@ -437,33 +432,57 @@ export function ChatWindow() {
           style={{ display: 'none' }}
           disabled={uploadingFile}
         />
-        <button
-          type="button"
-          className="file-upload-btn"
-          onClick={handleFileButtonClick}
-          disabled={uploadingFile}
-          title="Upload file"
-        >
-          {uploadingFile ? '⏳' : '📎'}
-        </button>
-        <button
-          type="button"
-          className="emoji-trigger-btn"
-          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          title="Add emoji"
-        >
-          😀
-        </button>
-        <input
-          type="text"
-          value={messageText}
-          onChange={(e) => setMessageText(e.target.value)}
-          placeholder="Type a message..."
-          disabled={sending || uploadingFile}
-        />
-        <button type="submit" disabled={sending || !messageText.trim() || uploadingFile}>
-          Send
-        </button>
+
+        {attachedFile && (
+          <div className="file-attachment-preview">
+            <div className="attachment-info">
+              <span className="attachment-icon">
+                {attachedFile.file.type.startsWith('image/') ? '🖼️' :
+                 attachedFile.file.type.startsWith('audio/') ? '🎵' :
+                 attachedFile.file.type.startsWith('video/') ? '🎬' : '📎'}
+              </span>
+              <span className="attachment-name">{attachedFile.fileInfo.filename}</span>
+              <button
+                type="button"
+                className="remove-attachment-btn"
+                onClick={handleRemoveAttachment}
+                title="Remove attachment"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="input-row">
+          <button
+            type="button"
+            className="file-upload-btn"
+            onClick={handleFileButtonClick}
+            disabled={uploadingFile || !!attachedFile}
+            title="Upload file"
+          >
+            {uploadingFile ? '⏳' : '📎'}
+          </button>
+          <button
+            type="button"
+            className="emoji-trigger-btn"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            title="Add emoji"
+          >
+            😀
+          </button>
+          <input
+            type="text"
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+            placeholder={attachedFile ? "Add a caption (optional)..." : "Type a message..."}
+            disabled={sending || uploadingFile}
+          />
+          <button type="submit" disabled={sending || (!messageText.trim() && !attachedFile) || uploadingFile}>
+            Send
+          </button>
+        </div>
       </form>
 
       {showEmojiPicker && (

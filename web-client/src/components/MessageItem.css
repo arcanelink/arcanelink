@@ -93,6 +93,20 @@
   max-width: 100%;
 }
 
+.file-caption {
+  font-size: 15px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-item.other .file-caption {
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+
 .file-download {
   display: flex;
   align-items: center;

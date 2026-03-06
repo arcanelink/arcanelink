@@ -22,6 +22,7 @@ export interface MessageContent {
   info?: {
     size?: number
     mimetype?: string
+    filename?: string
     [key: string]: any
   }
 }

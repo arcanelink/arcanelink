@@ -1,6 +1,9 @@
 import type { Message } from '../types'
 import { LinkPreview } from './LinkPreview'
+import { SecureImage } from './SecureImage'
+import { SecureMedia } from './SecureMedia'
 import './MessageItem.css'
+import './SecureImage.css'
 
 interface MessageItemProps {
   message: Message
@@ -51,12 +54,22 @@ export function MessageItem({ message, isOwn }: MessageItemProps) {
     const { msgtype, body, url, info } = message.content
     const fileSize = info?.size ? formatFileSize(info.size) : ''
 
+    // Get original filename from info or body
+    // If body looks like a filename (has extension), use it
+    // Otherwise, body is the caption/description
+    const hasExtension = body && /\.[a-zA-Z0-9]+$/.test(body)
+    const filename = hasExtension ? body : (info?.filename || body)
+    const caption = hasExtension ? null : body
+
     if (msgtype === 'm.image') {
       return (
         <div className="file-message image-message">
-          <img src={url} alt={body} className="message-image" />
+          <SecureImage src={url!} alt={filename} className="message-image" />
+          {caption && (
+            <div className="file-caption">{caption}</div>
+          )}
           <div className="file-info">
-            <span className="file-name">{body}</span>
+            <span className="file-name">{filename}</span>
             {fileSize && <span className="file-size">{fileSize}</span>}
           </div>
         </div>
@@ -66,9 +79,12 @@ export function MessageItem({ message, isOwn }: MessageItemProps) {
     if (msgtype === 'm.audio') {
       return (
         <div className="file-message audio-message">
-          <audio controls src={url} className="message-audio" />
+          <SecureMedia src={url!} type="audio" className="message-audio" />
+          {caption && (
+            <div className="file-caption">{caption}</div>
+          )}
           <div className="file-info">
-            <span className="file-name">🎵 {body}</span>
+            <span className="file-name">🎵 {filename}</span>
             {fileSize && <span className="file-size">{fileSize}</span>}
           </div>
         </div>
@@ -78,9 +94,12 @@ export function MessageItem({ message, isOwn }: MessageItemProps) {
     if (msgtype === 'm.video') {
       return (
         <div className="file-message video-message">
-          <video controls src={url} className="message-video" />
+          <SecureMedia src={url!} type="video" className="message-video" />
+          {caption && (
+            <div className="file-caption">{caption}</div>
+          )}
           <div className="file-info">
-            <span className="file-name">🎬 {body}</span>
+            <span className="file-name">🎬 {filename}</span>
             {fileSize && <span className="file-size">{fileSize}</span>}
           </div>
         </div>
@@ -89,14 +108,19 @@ export function MessageItem({ message, isOwn }: MessageItemProps) {
 
     if (msgtype === 'm.file') {
       return (
-        <a href={url} download className="file-message file-download">
-          <div className="file-icon">📎</div>
-          <div className="file-info">
-            <span className="file-name">{body}</span>
-            {fileSize && <span className="file-size">{fileSize}</span>}
-          </div>
-          <div className="download-icon">⬇️</div>
-        </a>
+        <div className="file-message">
+          <a href={url} download className="file-download">
+            <div className="file-icon">📎</div>
+            <div className="file-info">
+              <span className="file-name">{filename}</span>
+              {fileSize && <span className="file-size">{fileSize}</span>}
+            </div>
+            <div className="download-icon">⬇️</div>
+          </a>
+          {caption && (
+            <div className="file-caption">{caption}</div>
+          )}
+        </div>
       )
     }
 

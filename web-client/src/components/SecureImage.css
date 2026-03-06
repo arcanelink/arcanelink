@@ -1,0 +1,21 @@
+.secure-image-loading,
+.secure-image-error,
+.secure-media-loading,
+.secure-media-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  min-height: 200px;
+}
+
+.loading-spinner {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 14px;
+}
