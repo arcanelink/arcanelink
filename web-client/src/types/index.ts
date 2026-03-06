@@ -18,6 +18,8 @@ export interface Message {
 export interface MessageContent {
   msgtype: 'm.text' | 'm.image' | 'm.file' | 'm.audio' | 'm.video'
   body: string
+  format?: string // 'org.matrix.custom.html' or 'markdown'
+  formatted_body?: string // HTML formatted body (optional)
   url?: string
   info?: {
     size?: number

@@ -18,6 +18,7 @@ export function ChatWindow() {
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [roomCreator, setRoomCreator] = useState<string | null>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
+  const [useMarkdown, setUseMarkdown] = useState(false)
   const [attachedFile, setAttachedFile] = useState<{
     file: File
     fileInfo: {
@@ -117,6 +118,7 @@ export function ChatWindow() {
           content: {
             msgtype: msgtype as any,
             body,
+            format: useMarkdown && !attachedFile ? 'markdown' : undefined,
             url,
             info,
           },
@@ -130,6 +132,7 @@ export function ChatWindow() {
           content: {
             msgtype: msgtype as any,
             body,
+            format: useMarkdown && !attachedFile ? 'markdown' : undefined,
             url,
             info,
           },
@@ -142,6 +145,7 @@ export function ChatWindow() {
           content: {
             msgtype: msgtype as any,
             body,
+            format: useMarkdown && !attachedFile ? 'markdown' : undefined,
             url,
             info,
           },
@@ -155,6 +159,7 @@ export function ChatWindow() {
           content: {
             msgtype: msgtype as any,
             body,
+            format: useMarkdown && !attachedFile ? 'markdown' : undefined,
             url,
             info,
           },
@@ -463,6 +468,15 @@ export function ChatWindow() {
             title="Upload file"
           >
             {uploadingFile ? '⏳' : '📎'}
+          </button>
+          <button
+            type="button"
+            className={`markdown-toggle-btn ${useMarkdown ? 'active' : ''}`}
+            onClick={() => setUseMarkdown(!useMarkdown)}
+            title={useMarkdown ? "Markdown enabled" : "Markdown disabled"}
+            disabled={!!attachedFile}
+          >
+            {useMarkdown ? 'M↓' : 'M'}
           </button>
           <button
             type="button"

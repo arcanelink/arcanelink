@@ -446,6 +446,43 @@
   cursor: not-allowed;
 }
 
+.markdown-toggle-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.markdown-toggle-btn:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+  transform: scale(1.1);
+}
+
+.markdown-toggle-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.markdown-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.markdown-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .emoji-trigger-btn {
   background: none;
   border: 1px solid var(--border-color);

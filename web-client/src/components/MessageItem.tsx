@@ -3,8 +3,10 @@ import type { Message } from '../types'
 import { LinkPreview } from './LinkPreview'
 import { SecureImage } from './SecureImage'
 import { SecureMedia } from './SecureMedia'
+import { MarkdownRenderer } from './MarkdownRenderer'
 import './MessageItem.css'
 import './SecureImage.css'
+import './MarkdownRenderer.css'
 
 interface MessageItemProps {
   message: Message
@@ -31,7 +33,13 @@ export function MessageItem({ message, isOwn }: MessageItemProps) {
     return matches || []
   }
 
-  const renderMessageContent = (text: string) => {
+  const renderMessageContent = (text: string, format?: string) => {
+    // If format is specified as markdown or html, use MarkdownRenderer
+    if (format === 'org.matrix.custom.html' || format === 'markdown') {
+      return <MarkdownRenderer content={text} />
+    }
+
+    // Default: plain text with clickable links
     const urlPattern = /(https?:\/\/[^\s]+)/g
     const parts = text.split(urlPattern)
 
@@ -152,7 +160,9 @@ export function MessageItem({ message, isOwn }: MessageItemProps) {
           renderFileMessage()
         ) : (
           <>
-            <div className="message-content">{renderMessageContent(message.content.body)}</div>
+            <div className="message-content">
+              {renderMessageContent(message.content.body, message.content.format)}
+            </div>
             {urls.length > 0 && (
               <div className="message-previews">
                 {urls.slice(0, 3).map((url, index) => (
